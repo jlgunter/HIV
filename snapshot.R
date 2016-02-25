@@ -1,6 +1,13 @@
 #Goals of this script: 
 #1 - Summarize data from St Pierre and Liege
 
+
+###something to consider: When a patient dies, there is also an event for end of follow up.
+#need to check if it's identical to death data
+
+#also, a more nuanced look at what's happening at the events will be necessary.
+#for now, for example for HTA, I'm just looking at if the patient was ever treated
+
 #########################################################################
 library(data.table)
 library(ltm)
@@ -10,55 +17,51 @@ library(ltm)
 library(Hmisc)
 library(reshape2)
 ##########################################################################
-CD4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_2.csv', header = T, na.strings=c(""))
+liege_CD4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_2.csv', header = T, na.strings=c(""))
 
 #find nadir CD4 count for each subject
-CD4_nadir <- aggregate(CD4$CD4_VALUE ~ CD4$IDENT_NR, CD4, min)
-names(CD4_nadir)[1] <- 'IDENT_NR'
-names(CD4_nadir)[2] <- 'CD4_NADIR'
+liege_CD4_nadir <- aggregate(liege_CD4$CD4_VALUE ~ liege_CD4$IDENT_NR, liege_CD4, min)
+colnames(liege_CD4_nadir)[1:2] <- c('IDENT_NR', 'CD4_NADIR')
 
 #find mean CD4 count for each subject
-CD4_avg <- aggregate(CD4$CD4_VALUE ~ CD4$IDENT_NR, CD4, mean)
-names(CD4_avg)[1] <- 'IDENT_NR'
-names(CD4_avg)[2] <- 'CD4_AVG'
+liege_CD4_avg <- aggregate(liege_CD4$CD4_VALUE ~ liege_CD4$IDENT_NR, liege_CD4, mean)
+colnames(liege_CD4_avg)[1:2] <- c('IDENT_NR', 'CD4_AVG')
 
 #find most recent CD4 count
 #convert dates from a factor to a date
-CD4$CD4_DATE <- as.Date(CD4$CD4_DATE, format = "%m/%d/%Y")
-CD4_recent <- aggregate(CD4$CD4_DATE ~ CD4$IDENT_NR, CD4, max)
-names(CD4_recent)[1] <- 'IDENT_NR'
-names(CD4_recent)[2] <- 'CD4_DATE'
-CD4_rec <- merge(CD4, CD4_recent, by = c("CD4_DATE", "IDENT_NR"), all=FALSE)
-names(CD4_rec)[3] <- 'CD4_RECENT'
-CD4_rec_ord <- CD4_rec[order(CD4_rec[,2]),]
+liege_CD4$CD4_DATE <- as.Date(liege_CD4$CD4_DATE, format = "%m/%d/%Y")
+liege_CD4_recent <- aggregate(liege_CD4$CD4_DATE ~ liege_CD4$IDENT_NR, liege_CD4, max)
+colnames(liege_CD4_recent)[1:2] <- c('IDENT_NR', 'CD4_DATE')
+liege_CD4_rec <- merge(liege_CD4, liege_CD4_recent, by = c("CD4_DATE", "IDENT_NR"), all=FALSE)
+names(liege_CD4_rec)[3] <- 'CD4_RECENT'
+liege_CD4_rec_ord <- liege_CD4_rec[order(liege_CD4_rec[,2]),]
 
 #merge into one dataframe by ident
-CD4_tmp <- merge(CD4_nadir, CD4_avg, by = "IDENT_NR", all = FALSE)
-CD4_comb <- merge(CD4_tmp, CD4_rec, by = "IDENT_NR", all = FALSE)
-names(CD4_comb)[4] <- 'RECENT_DATE'
+liege_CD4_tmp <- merge(liege_CD4_nadir, liege_CD4_avg, by = "IDENT_NR", all = FALSE)
+liege_CD4_comb <- merge(liege_CD4_tmp, liege_CD4_rec, by = "IDENT_NR", all = FALSE)
+names(liege_CD4_comb)[4] <- 'RECENT_DATE'
 
 ##########################################################################
 #not doing anything with CD4_percent for now because it is unlikely 
 #that we will get this from all other centres
 
-CD4_percent <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_PERCENT_2.csv', header = T, na.strings=c(""))
-
+liege_CD4_percent <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_PERCENT_2.csv', header = T, na.strings=c(""))
 
 ##########################################################################
 
-BAS <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_BAS_2.csv', header = T, na.strings=c(""), stringsAsFactors = FALSE)
+liege_BAS <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_BAS_2.csv', header = T, na.strings=c(""), stringsAsFactors = FALSE)
 
 #make dates into as.Date and to change the fake dates to NA
 
-names(BAS)[11] <- 'DATE.START.ART'
-BAS[, cols <- grep("DATE", names(BAS))] <- lapply(BAS[, cols <- grep("DATE", names(BAS))], as.Date, format = "%m/%d/%Y")
+names(liege_BAS)[11] <- 'DATE.START.ART'
+liege_BAS[, cols <- grep("DATE", names(liege_BAS))] <- lapply(liege_BAS[, cols <- grep("DATE", names(liege_BAS))], as.Date, format = "%m/%d/%Y")
 
 #make the fake placeholder date into NA
-BAS[BAS == "1911-11-11"] <- NA
+liege_BAS[liege_BAS == "1911-11-11"] <- NA
 
 #subtract birth date from today's date, make new column for age
-BAS$sys_date <- Sys.Date()
-#as.numeric(BAS$sys_date, "%Y")
+liege_BAS$sys_date <- Sys.Date()
+#as.numeric(liege_BAS$sys_date, "%Y")
 
 #from http://r.789695.n4.nabble.com/Calculate-difference-between-dates-in-years-td835196.html
 age_years <- function(first, second) 
@@ -70,94 +73,86 @@ age_years <- function(first, second)
   age 
 }
 
-BAS$age <- age_years(BAS$BIRTH_DATE, BAS$sys_date)
-BAS$age <- as.vector(BAS$age)
+liege_BAS$age <- age_years(liege_BAS$BIRTH_DATE, liege_BAS$sys_date)
+liege_BAS$age <- as.vector(liege_BAS$age)
 
 #do the same for the number of years on ART
-BAS$years_on_ART <- age_years(BAS$DATE.START.ART, BAS$sys_date)
+liege_BAS$years_on_ART <- age_years(liege_BAS$DATE.START.ART, liege_BAS$sys_date)
 
 #combine CD4_comb with this database
-BAS_CD4 <- merge(BAS, CD4_comb, by = "IDENT_NR", all=FALSE)
+liege_BAS_CD4 <- merge(liege_BAS, CD4_comb, by = "IDENT_NR", all=FALSE)
 
 ##########################################################################
 
-CEP <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CEP_2.csv', header = T, na.strings=c(""))
-CEP$CLIN_EVENT_DATE <- as.Date(CEP$CLIN_EVENT_DATE, format = "%m/%d/%Y")
-CEP$CLIN_EVENT_DATE[CEP$CLIN_EVENT_DATE == "1911-11-11"]<- NA
+liege_CEP <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CEP_2.csv', header = T, na.strings=c(""))
+liege_CEP$CLIN_EVENT_DATE <- as.Date(liege_CEP$CLIN_EVENT_DATE, format = "%m/%d/%Y")
+liege_CEP$CLIN_EVENT_DATE[liege_CEP$CLIN_EVENT_DATE == "1911-11-11"]<- NA
 
 #add it on to the master database
-master <- merge(BAS_CD4, CEP, by = "IDENT_NR", all = TRUE)
-
-DT_master <- data.table(master)
+liege_master <- as.data.table(merge(liege_BAS_CD4, liege_CEP, by = "IDENT_NR", all = TRUE))
 
 #recode GENDER variable
-DT_master$gender_con <- ifelse(DT_master$GENDER == 'M', 0, 1)
+liege_master$gender_con <- ifelse(liege_master$GENDER == 'M', 0, 1)
 
 #contrast code 'smoking' variable
-DT_master$smoke_unk  <- -2*(DT_master$SMOKE_YES=='UNK') + 1*(DT_master$SMOKE_YES %in% c('N', 'Y'))
-DT_master$smoke_YN <- 0*(DT_master$SMOKE_YES=='UNK') - 1*(DT_master$SMOKE_YES == 'N') + 1*(DT_master$SMOKE_YES == 'Y')
+liege_master$smoke_unk  <- -2*(liege_master$SMOKE_YES=='UNK') + 1*(liege_master$SMOKE_YES %in% c('N', 'Y'))
+liege_master$smoke_YN <- 0*(liege_master$SMOKE_YES=='UNK') - 1*(liege_master$SMOKE_YES == 'N') + 1*(liege_master$SMOKE_YES == 'Y')
 
 #standardize 'ethnic' var spelling
 
-DT_master$ETHNIC <- gsub("africain", "Africain", DT_master$ETHNIC)
-DT_master$ETHNIC <- gsub("caucasien", "Caucasien", DT_master$ETHNIC)
+liege_master$ETHNIC <- gsub("africain", "Africain", liege_master$ETHNIC)
+liege_master$ETHNIC <- gsub("caucasien", "Caucasien", liege_master$ETHNIC)
 
 #make a new column that is number of co-morbidities each patient experienced
-DT_master[, num_CMs := .N, by=IDENT_NR][is.na(CLIN_EVENT_ID), num_CMs := 0]
-DT_master[, num_CMs := as.numeric(num_CMs)]
+liege_master[, num_CMs := .N, by=IDENT_NR][is.na(CLIN_EVENT_ID), num_CMs := 0]
+liege_master[, num_CMs := as.numeric(num_CMs)]
 
 #stack overflow solution to solve the problem of multiple rows for IDs
-DT_master$CLIN_EVENT_ID <- as.character(DT_master$CLIN_EVENT_ID)
-DT_master <- DT_master[, c(CLIN_EVENT_ID_NEW = paste(CLIN_EVENT_ID, collapse = "; "), .SD), by = IDENT_NR]
-DT_master <- DT_master[!duplicated(DT_master$IDENT_NR)]
+liege_master$CLIN_EVENT_ID <- as.character(liege_master$CLIN_EVENT_ID)
+liege_master <- liege_master[, c(CLIN_EVENT_ID_NEW = paste(CLIN_EVENT_ID, collapse = "; "), .SD), by = IDENT_NR][!duplicated(liege_master$IDENT_NR)]
 
 #split the strings of multiple numbers into 4 new cols
-DT_master[, c("CLIN_EVENT_ID1", "CLIN_EVENT_ID2", "CLIN_EVENT_ID3", "CLIN_EVENT_ID4") := tstrsplit(as.character(CLIN_EVENT_ID_NEW), "; ", fixed=TRUE)]
+liege_master[, c("CLIN_EVENT_ID1", "CLIN_EVENT_ID2", "CLIN_EVENT_ID3", "CLIN_EVENT_ID4") := tstrsplit(as.character(CLIN_EVENT_ID_NEW), "; ", fixed=TRUE)]
 
 #eliminate unnecessary cols
-DT_master[, CLIN_EVENT_ID_NEW := NULL]
+liege_master[, CLIN_EVENT_ID_NEW := NULL]
 
 
 #############################################
 #bring in death data
-DEATH <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_DEATH_2.csv', header = T, na.strings=c(""))
-DEATH$DEATH_DATE <- as.Date(DEATH$DEATH_DATE, format = "%m/%d/%Y")
-DEATH$DEATH_DATE[DEATH$DEATH_DATE == "1911-11-11"]<- NA
+liege_death <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_DEATH_2.csv', header = T, na.strings=c(""))
+liege_death$DEATH_DATE <- as.Date(liege_death$DEATH_DATE, format = "%m/%d/%Y")
+liege_death$DEATH_DATE[liege_death$DEATH_DATE == "1911-11-11"]<- NA
 
-#merge death and DT_master
-DT_all <- merge(DEATH, DT_master, by = "IDENT_NR", all = TRUE)
+#merge liege_death and liege_master
+liege_all <- as.data.table(merge(liege_death, liege_master, by = "IDENT_NR", all = TRUE))
 
 #remove rows that are deceased patients
-DT_alive <- DT_death[-c(1:26),]
-
-DT_all <- as.data.table(DT_all)
-DT_alive <- as.data.table(DT_alive)
+liege_alive <- as.data.table(liege_death[-c(1:26),])
 
 #remove death columns
-DT_alive[, c("CAUSE_DEATH", "DEATH_DATE") := NULL]
+liege_alive[, c("CAUSE_DEATH", "DEATH_DATE") := NULL]
 
 #Create a new column that is binary instead of count for num_CMs
 
-DT_all[, CM_yes := num_CMs]
+liege_all[, CM_yes := num_CMs]
 
-DT_all$CM_yes <- ifelse(DT_all$num_CMs>=1, 1, 0)
-
+liege_all$CM_yes <- ifelse(liege_all$num_CMs>=1, 1, 0)
 
 
 ##########################################################################
 
 
 #remove rows with missing data
-#DT_master2 <- na.omit(DT_master2)
-#DT_master2$GENDER <- as.factor(DT_master2$GENDER)
-#DT_master2 <- as.data.frame(DT_master2)
+#liege_master2 <- na.omit(liege_master2)
+#liege_master2$GENDER <- as.factor(liege_master2$GENDER)
+#liege_master2 <- as.data.frame(liege_master2)
 
 #######################
 
-CD4_percent <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_PERCENT_2.csv', header = T, na.strings=c(""))
+liege_CD4_percent <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_PERCENT_2.csv', header = T, na.strings=c(""))
 
 ################################################
-
 
 st_pierre_px <- read.csv2('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/St Pierre/PATIENTS.csv',
                           header = TRUE, quote = "\"", dec = ",", na.strings=c(""))
@@ -169,23 +164,12 @@ st_pierre_events <- read.csv2('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Da
 #age
 st_pierre_px$DOB <- as.Date(st_pierre_px$DOB, format = "%d/%m/%Y")
 
-
 st_pierre_px$DOB[st_pierre_px$DOB == "1911-11-11"] <- NA
 
 today <- Sys.Date()
 st_pierre_px$sys_date <- as.Date(format(today, format = "%Y-%m-%d"))
 
-
-#from http://r.789695.n4.nabble.com/Calculate-difference-between-dates-in-years-td835196.html
-age_years <- function(first, second) 
-{ 
-  df <- data.frame(first, second) 
-  age <- as.numeric(format(df[,2],format="%Y")) - as.numeric(format(df[,1],format="%Y")) 
-  first <- as.Date(paste(format(df[,2],format="%Y"),"-",format(df[,1],format="%m-%d"),sep="")) 
-  age[which(first > df[,2])] <- age[which(first > df[,2])] - 1 
-  age 
-}
-
+#use previously defined age_years function
 st_pierre_px$age <- age_years(st_pierre_px$DOB, st_pierre_px$sys_date)
 
 ########################################
@@ -227,11 +211,6 @@ legend("topright", c("LTFU/Transf.", "not_LTFU"), col = c(rgb(0,0,139, max = 255
 minor.tick(nx = 10)
 
 #######
-#subset those over 50 years old
-
-
-
-
 
 ###clean up gender var
 Liege_not_LTFU <- as.data.frame(Liege_not_LTFU)
@@ -254,13 +233,13 @@ pierre_plot <- ggplot(pierre_not_LTFU, aes(gender, age, fill=gender)) + geom_box
 grid.arrange(liege_plot, pierre_plot, nrow=2)
 
 #create liege death
-liege_death <- subset(DT_all, STATUS == "Death")
+liege_death <- subset(liege_all, STATUS == "Death")
 liege_death$death_age <- age_years(liege_death$BIRTH_DATE, liege_death$DEATH_DATE)
 
 #bin the age groups by 5 years
 breaks <- seq(0,85, by=5)
-DT_all$liege_binned <- cut(DT_all$age, breaks, include.lowest = T)
-levels(DT_all$liege_binned) <- c("0-5","6-10","11-15",
+liege_all$liege_binned <- cut(liege_all$age, breaks, include.lowest = T)
+levels(liege_all$liege_binned) <- c("0-5","6-10","11-15",
                                  "16-20","21-25", "26-30","31-35","36-40",
                                  "41-45","46-50","51-55", "56-60", "61-65",
                                  "66-70", "71-75", "76-80", "81-85")
@@ -314,22 +293,16 @@ liege_avg_not_LTFU <- na.omit(liege_avg_not_LTFU)
 mean(liege_avg_not_LTFU)
 
 
-
 ####looking at the average number of years on ART
 Over50_Liege <- subset(DT_alive, age >= 50)
 avg_ART <- Over50_Liege$years_on_ART
 avg_ART <- na.omit(avg_ART)
 mean(avg_ART)
 
-
-
-
-
-
 #######################
-#look at DT_all CMs
+#look at liege_all CMs
 
-liege_events <- as.data.frame(table(DT_all$CLIN_EVENT_ID1))
+liege_events <- as.data.frame(table(liege_all$CLIN_EVENT_ID1))
 liege_events <- liege_events[!(liege_events$Var1 == "NA"),]
 names(liege_events)[1] <- "CM"
 
@@ -405,7 +378,7 @@ pierre_bar <- ggplot(data=pierre_events, aes(x=CM, y=Freq, fill=CM)) + geom_bar(
 
 pierre_not_LTFU_dead <- subset(st_pierre_px, LTFU == "0")
 
-liege_not_LTFU_dead <- subset(DT_all, STATUS != "Contact lost")
+liege_not_LTFU_dead <- subset(liege_all, STATUS != "Contact lost")
 liege_dead_alive <- subset(liege_not_LTFU_dead, STATUS != "Transferred")
 age_tab_liege <- table(liege_dead_alive$liege_binned)
 age_tab_liege_dead <- table(liege_death$liege_binned)
@@ -423,9 +396,8 @@ death_rates_pierre <- age_tab_pierre_dead/age_tab_pierre
 mortality_tab_pierre <- as.data.frame(death_rates_pierre*1000)
 
 mortality_tabs <- merge(mortality_tab_liege, mortality_tab_pierre, by = "Var1", all = TRUE)
-names(mortality_tabs)[1] <- "Age"
-names(mortality_tabs)[2] <- "Liege"
-names(mortality_tabs)[3] <- "St. Pierre"
+#colnames(mortality_tabs)[1:3] <- c("Age", "Liege", "St. Pierre")
+colnames(mortality_tabs)[2:3] <- c("Liege", "St. Pierre")
 
 mortality_tabs_long <- melt(mortality_tabs, id="Age")  # convert to long format
 names(mortality_tabs_long)[2] <- "Cohort"
@@ -440,90 +412,57 @@ ggplot(data=mortality_tabs_long,
 ###########
 ##treated for hypertension
 
-#restructure data so that each ID only has one row
-pierre_events_hyp <- as.data.table(st_pierre_events[c(1, 24)])
-pierre_events_hyp <- pierre_events_hyp[, c(trt_hypertension_new = paste(TRT_HYPERTENSION_AT_EVENT, collapse = "; "), .SD), by = ID_PATIENT]
-pierre_events_hyp <- pierre_events_hyp[!duplicated(pierre_events_hyp$ID_PATIENT)]
+pierre_hyp <- as.data.table(st_pierre_events)
+pierre_hyp[, id_hyp := 1:.N, by = ID_PATIENT]
+pierre_hyp_cast <- dcast(pierre_hyp[,list(ID_PATIENT, id_hyp, TRT_HYPERTENSION_AT_EVENT)], ID_PATIENT ~ id_hyp, value.var = 'TRT_HYPERTENSION_AT_EVENT', fill = 0)
 
-#split the strings of multiple numbers into 4 new cols
-pierre_events_hyp[, c("trt_hyp1", "trt_hyp2", "trt_hyp3", "trt_hyp4") := tstrsplit(as.character(trt_hypertension_new), "; ", fixed=TRUE)]
+#write a function to create a new column that is conditional on whether the sum column => 1
 
-#make columns numeric
-pierre_events_hyp <- pierre_events_hyp[, lapply(.SD, as.numeric), by = ID_PATIENT]
-
-#function to replace NA with 0 in a data table
-func_na <- function(DT) {
-  for (i in names(DT))
-    DT[is.na(get(i)), i:=0, with=FALSE]
+dichotomous <- function(DT) {
+  DT$sum_col <- rowSums(DT[2:7])
+  DT$var_yes <- ifelse(DT$sum_col>=1, 1, 0)
+  DT
 }
 
-func_na(pierre_events_hyp)
-
-#create a new column that is conditional on whether any of the hypertension columns == 1
-pierre_events_hyp$trt_hyp_sum <- pierre_events_hyp$trt_hyp1 + pierre_events_hyp$trt_hyp2 + pierre_events_hyp$trt_hyp3 + pierre_events_hyp$trt_hyp4
-pierre_events_hyp$trt_hyp_yes <- ifelse(pierre_events_hyp$trt_hyp_sum>=1, 1, 0)
-table(pierre_events_hyp$trt_hyp_yes)
+pierre_hyp_cast <- dichotomous(pierre_hyp_cast)
+colnames(pierre_hyp_cast)[9] <- "hyp_yes"
 
 ######do the same for smoking
 
-pierre_events_smoke <- as.data.table(st_pierre_events[c(1, 18)])
+pierre_smoke <- as.data.table(st_pierre_events[c(1, 18)])
+pierre_smoke[, id_smoke := 1:.N, by = ID_PATIENT]
+pierre_smoke_cast <- dcast(pierre_smoke[,list(ID_PATIENT, id_smoke, EVER_SMOKED_AT_EVENT)], ID_PATIENT ~ id_smoke, value.var = 'EVER_SMOKED_AT_EVENT', fill = 0)
 
-#restructure the data so that there is only one row per ID
-pierre_events_smoke <- pierre_events_smoke[, c(smoke_new = paste(EVER_SMOKED_AT_EVENT, collapse = "; "), .SD), by = ID_PATIENT]
-pierre_events_smoke <- pierre_events_smoke[!duplicated(pierre_events_smoke$ID_PATIENT)]
-
-#split the strings of multiple numbers into 4 new cols
-pierre_events_smoke[, c("smoke1", "smoke2", "smoke3", "smoke4") := tstrsplit(as.character(smoke_new), "; ", fixed=TRUE)]
-
-#make columns numeric
-pierre_events_smoke <- pierre_events_smoke[, lapply(.SD, as.numeric), by = ID_PATIENT]
-
-#call the function to replace NA with 0
-func_na(pierre_events_smoke)
-
-#create a new column that is conditional on whether any of the hypertension columns == 1
-pierre_events_smoke$smoke_sum <- pierre_events_smoke$smoke1 + pierre_events_smoke$smoke2 + pierre_events_smoke$smoke3 + pierre_events_smoke$smoke4
-pierre_events_smoke$smoke_yes <- ifelse(pierre_events_smoke$smoke_sum>=1, 1, 0)
-table(pierre_events_smoke$smoke_yes)
+pierre_smoke_cast <- dichotomous(pierre_smoke_cast)
+colnames(pierre_smoke_cast)[9] <- "smoke_yes"
 
 ######BMI
 
 pierre_bmi <- as.data.table(st_pierre_events[c(1, 19)])
-
-#restructure the data so each ID only has one row
-pierre_bmi <- pierre_bmi[, c(bmi_new = paste(BMI_AT_EVENT, collapse = "; "), .SD), by = ID_PATIENT]
-pierre_bmi <- pierre_bmi[!duplicated(pierre_bmi$ID_PATIENT)]
-  
-#split the strings of multiple numbers into 4 new cols
-pierre_bmi[, c("bmi1", "bmi2", "bmi3", "bmi4") := tstrsplit(as.character(bmi_new), "; ", fixed=TRUE)]
-
-#make the bmi columns numeric
-pierre_bmi_new <- pierre_bmi[, lapply(.SD, as.numeric), by = ID_PATIENT]
-
-#convert back to data frame
-pierre_bmi_new <- as.data.frame(pierre_bmi_new)
+pierre_bmi[, id_bmi := 1:.N, by = ID_PATIENT]
+pierre_bmi_cast <- dcast(pierre_bmi[,list(ID_PATIENT, id_bmi, BMI_AT_EVENT)], ID_PATIENT ~ id_bmi, value.var = 'BMI_AT_EVENT', fill = 0)
 
 #create a new column that is the mean of the bmi measurements, excluding NAs
-pierre_bmi_new$bmi_mean <- round(rowMeans(pierre_bmi_new[4:7], na.rm=TRUE), 2)
+pierre_bmi_cast$bmi_mean <- round(rowMeans(replace(pierre_bmi_cast[2:7], pierre_bmi_cast[2:7]==0, NA), na.rm=TRUE), 2)
 
 ###now find the BMI for the Liege patients
-DT_all$HEIGHT[DT_all$HEIGHT == "999"] <- NA
-DT_all$WEIGHT[DT_all$WEIGHT == "999"] <- NA
-DT_all$BMI <- (DT_all$WEIGHT/DT_all$HEIGHT/DT_all$HEIGHT)*10000
+liege_all$HEIGHT[liege_all$HEIGHT == "999"] <- NA
+liege_all$WEIGHT[liege_all$WEIGHT == "999"] <- NA
+liege_all$BMI <- (liege_all$WEIGHT/liege_all$HEIGHT/liege_all$HEIGHT)*10000
 
 #create boxplots - BMI by gender
 
 ###clean up gender var
 
-names(DT_all)[5] <- 'gender'
-DT_all$gender <- gsub("F", "Female", DT_all$gender)
-DT_all$gender <- gsub("M", "Male", DT_all$gender)
-DT_all$gender <- gsub("O", "Other", DT_all$gender)
+names(liege_all)[5] <- 'gender'
+liege_all$gender <- gsub("F", "Female", liege_all$gender)
+liege_all$gender <- gsub("M", "Male", liege_all$gender)
+liege_all$gender <- gsub("O", "Other", liege_all$gender)
 
 #names(pierre_not_LTFU)[3] <- 'gender'
 
 #with diamond at the mean
-liege_bmi <- ggplot(DT_all, aes(gender, BMI, fill=gender)) + geom_boxplot() +
+liege_bmi <- ggplot(liege_all, aes(gender, BMI, fill=gender)) + geom_boxplot() +
   stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
   scale_fill_manual(values = c("seagreen3", "dodgerblue3", "salmon2")) + 
   scale_y_continuous(breaks=seq(0,50,5)) + ggtitle("BMI Distribution - Liège") + geom_hline(yintercept = 30)
@@ -626,59 +565,22 @@ liege_country_pie <- LP + theme(axis.text.x=element_text(color='black')) +
 ################################################
 ###CD4 counts
 
-pierre_events_cd4 <- as.data.table(st_pierre_events)
-pierre_events_cd4 <- pierre_events_cd4[, c(cd4_new = paste(CD4_AT_EVENT, collapse = "; "), .SD), by = ID_PATIENT]
-pierre_events_cd4 <- pierre_events_cd4[!duplicated(pierre_events_cd4$ID_PATIENT)]
+pierre_cd4 <- as.data.table(st_pierre_events[c(1, 8)])
+pierre_cd4[, id_cd4 := 1:.N, by = ID_PATIENT]
+pierre_cd4_cast <- dcast(pierre_cd4[,list(ID_PATIENT, id_cd4, CD4_AT_EVENT)], ID_PATIENT ~ id_cd4, value.var = 'CD4_AT_EVENT', fill = 0)
 
-#split the strings of multiple numbers into 4 new cols
-pierre_events_cd4[, c("cd41", "cd42", "cd43", "cd44") := tstrsplit(as.character(cd4_new), "; ", fixed=TRUE)]
+pierre_cd4_cast$avg <- round(rowMeans(replace(pierre_cd4_cast[2:7], pierre_cd4_cast[2:7]==0, NA), na.rm=TRUE), 2)
 
-pierre_events_cd4 <- as.data.frame(pierre_events_cd4)
-pierre_events_cd4$cd41 <- as.numeric(pierre_events_cd4$cd41)
-pierre_events_cd4$cd42 <- as.numeric(pierre_events_cd4$cd42)
-pierre_events_cd4$cd43 <- as.numeric(pierre_events_cd4$cd43)
-pierre_events_cd4$cd44 <- as.numeric(pierre_events_cd4$cd44)
-
-pierre_events_cd4$cd41[is.na(pierre_events_cd4$cd41)]<- 0
-pierre_events_cd4$cd42[is.na(pierre_events_cd4$cd42)]<- 0
-pierre_events_cd4$cd43[is.na(pierre_events_cd4$cd43)]<- 0
-pierre_events_cd4$cd44[is.na(pierre_events_cd4$cd44)]<- 0
-
-pierre_events_cd4$avg <- rowMeans(replace(pierre_events_cd4[26:29], pierre_events_cd4[26:29]==0, NA), na.rm=TRUE)
 ###########################################
-#make a dataframe with just the IDs and the avg CD4 to later merge with nadirs, repeat process for nadir
-avg_pierre_cd4 <- data.frame(ID_PATIENT=pierre_events_cd4$ID_PATIENT, AVG_CD4=pierre_events_cd4$avg)
 
-pierre_events_cd4_nadir <- as.data.table(st_pierre_events)
-pierre_events_cd4_nadir <- pierre_events_cd4_nadir[, c(cd4_nadir_new = paste(CD4_NADIR_EVENT, collapse = "; "), .SD), by = ID_PATIENT]
-pierre_events_cd4_nadir <- pierre_events_cd4_nadir[!duplicated(pierre_events_cd4_nadir$ID_PATIENT)]
+pierre_cd4_nadir <- as.data.table(st_pierre_events[c(1, 9)])
+pierre_cd4_nadir[, id_cd4_nadir := 1:.N, by = ID_PATIENT]
+pierre_cd4_nadir_cast <- dcast(pierre_cd4_nadir[,list(ID_PATIENT, id_cd4_nadir, CD4_NADIR_EVENT)], ID_PATIENT ~ id_cd4_nadir, value.var = 'CD4_NADIR_EVENT', fill = 0)
 
-#split the strings of multiple numbers into 4 new cols
-pierre_events_cd4_nadir[, c("cd4_nadir1", "cd4_nadir2", "cd4_nadir3", "cd4_nadir4") := tstrsplit(as.character(cd4_nadir_new), "; ", fixed=TRUE)]
-
-pierre_events_cd4_nadir <- as.data.frame(pierre_events_cd4_nadir)
-pierre_events_cd4_nadir$cd4_nadir1 <- as.numeric(pierre_events_cd4_nadir$cd4_nadir1)
-pierre_events_cd4_nadir$cd4_nadir2 <- as.numeric(pierre_events_cd4_nadir$cd4_nadir2)
-pierre_events_cd4_nadir$cd4_nadir3 <- as.numeric(pierre_events_cd4_nadir$cd4_nadir3)
-pierre_events_cd4_nadir$cd4_nadir4 <- as.numeric(pierre_events_cd4_nadir$cd4_nadir4)
-
-pierre_events_cd4_nadir$cd4_nadir1[is.na(pierre_events_cd4_nadir$cd4_nadir1)]<- 0
-pierre_events_cd4_nadir$cd4_nadir2[is.na(pierre_events_cd4_nadir$cd4_nadir2)]<- 0
-pierre_events_cd4_nadir$cd4_nadir3[is.na(pierre_events_cd4_nadir$cd4_nadir3)]<- 0
-pierre_events_cd4_nadir$cd4_nadir4[is.na(pierre_events_cd4_nadir$cd4_nadir4)]<- 0
-
-pierre_events_cd4_nadir$avg <- rowMeans(replace(pierre_events_cd4_nadir[26:29], pierre_events_cd4_nadir[26:29]==0, NA), na.rm=TRUE)
-#actually didn't need to do the averaging for that one, clean up later
-
-nadir_pierre_cd4 <- data.frame(ID_PATIENT=pierre_events_cd4_nadir$ID_PATIENT, NADIR=pierre_events_cd4_nadir$avg)
-cd4s_pierre <- merge(nadir_pierre_cd4, avg_pierre_cd4, by = "ID_PATIENT", all = TRUE)
+pierre_cd4_all <- data.frame(ID_PATIENT=pierre_cd4_nadir_cast$ID_PATIENT, cd4_avg = pierre_cd4_cast$avg, cd4_nadir = pierre_cd4_nadir_cast[,2])
 
 
-mean(cd4s_pierre$NADIR, na.rm=TRUE)
-mean(cd4s_pierre$AVG_CD4, na.rm=TRUE)
-
-mean(DT_all$CD4_AVG, na.rm=TRUE)
-mean(DT_all$CD4_NADIR, na.rm=TRUE)
+#take mean of CD4 measures?
 
 #######################################################################
 #avg CD4 count by age bin?
@@ -688,7 +590,7 @@ mean(DT_all$CD4_NADIR, na.rm=TRUE)
 
 #merge age bin DFs with DFs used for CD4 counts just before this
 
-#DT_all is good to go
+#liege_all is good to go
 
 #pierre is not, redo this part
 pierre_binned_cd4 <- as.data.frame(st_pierre_px)
@@ -706,9 +608,7 @@ pierre_binned_cd4_merged <- merge(pierre_binned_cd4, cd4s_pierre, by = "ID_PATIE
 
 #this is just repeat from earlier to harvest code
 mortality_tabs <- merge(mortality_tab_liege, mortality_tab_pierre, by = "Var1", all = TRUE)
-names(mortality_tabs)[1] <- "Age"
-names(mortality_tabs)[2] <- "Liege"
-names(mortality_tabs)[3] <- "St. Pierre"
+colnames(mortality_tabs)[1:3] <- c("Age", "Liege", "St. Pierre")
 
 mortality_tabs_long <- melt(mortality_tabs, id="Age")  # convert to long format
 names(mortality_tabs_long)[2] <- "Cohort"
@@ -719,34 +619,41 @@ ggplot(data=mortality_tabs_long,
 
 
 #########started treatment at event 
-pierre_events_trt <- as.data.table(st_pierre_events)
-pierre_events_trt <- pierre_events_trt[, c(trt_new = paste(STARTED_TREATMENT_AT_EVENT, collapse = "; "), .SD), by = ID_PATIENT]
-pierre_events_trt <- pierre_events_trt[!duplicated(pierre_events_trt$ID_PATIENT)]
 
-#split the strings of multiple numbers into 4 new cols
-pierre_events_trt[, c("trt1", "trt2", "trt3", "trt4") := tstrsplit(as.character(trt_new), "; ", fixed=TRUE)]
+pierre_trt <- as.data.table(st_pierre_events[c(1, 12)])
+pierre_trt[, id_trt := 1:.N, by = ID_PATIENT]
+pierre_trt_cast <- dcast(pierre_trt[,list(ID_PATIENT, id_trt, STARTED_TREATMENT_AT_EVENT)], ID_PATIENT ~ id_trt, value.var = 'STARTED_TREATMENT_AT_EVENT', fill = 0)
 
-pierre_events_trt$trt1 <- as.numeric(pierre_events_trt$trt1)
-pierre_events_trt$trt2 <- as.numeric(pierre_events_trt$trt2)
-pierre_events_trt$trt3 <- as.numeric(pierre_events_trt$trt3)
-pierre_events_trt$trt4 <- as.numeric(pierre_events_trt$trt4)
-
-pierre_events_trt$trt1[is.na(pierre_events_trt$trt1)]<- 0
-pierre_events_trt$trt2[is.na(pierre_events_trt$trt2)]<- 0
-pierre_events_trt$trt3[is.na(pierre_events_trt$trt3)]<- 0
-pierre_events_trt$trt4[is.na(pierre_events_trt$trt4)]<- 0
-
-#create a new column that is conditional on whether any of the hypertension columns == 1
-pierre_events_trt$trt_sum <- pierre_events_trt$trt1 + pierre_events_trt$trt2 + pierre_events_trt$trt3 + pierre_events_trt$trt4
-pierre_events_trt$trt_yes <- ifelse(pierre_events_trt$trt_sum>=1, 1, 0)
-table(pierre_events_trt$trt_yes)
-
+pierre_trt_cast <- dichotomous(pierre_trt_cast)
+colnames(pierre_trt_cast)[9] <- "trt_yes"
 
 ######find out how many missing data points there are for years on ART
 
-DT_ART <- subset(DT_all, select = c(1, 22))
+DT_ART <- subset(liege_all, select = c(1, 22))
 DT_ART2 <- na.omit(DT_ART)
 nrow(DT_ART2)
 1103/1241
 DT_ART2$yes <- ifelse(DT_ART2$years_on_ART >= 1, 1, 0)
 1241-1103
+
+
+
+
+
+
+
+
+############## old code
+
+#restructure the data so that there is only one row per ID
+#pierre_events_smoke <- pierre_events_smoke[, c(smoke_new = paste(EVER_SMOKED_AT_EVENT, collapse = "; "), .SD), by = ID_PATIENT]
+#pierre_events_smoke <- pierre_events_smoke[!duplicated(pierre_events_smoke$ID_PATIENT)]
+
+#split the strings of multiple numbers into 4 new cols
+#pierre_events_smoke[, c("smoke1", "smoke2", "smoke3", "smoke4") := tstrsplit(as.character(smoke_new), "; ", fixed=TRUE)]
+
+#make columns numeric
+#pierre_events_smoke <- pierre_events_smoke[, lapply(.SD, as.numeric), by = ID_PATIENT]
+
+#call the function to replace NA with 0
+#func_na(pierre_events_smoke)
