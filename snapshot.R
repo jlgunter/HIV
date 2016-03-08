@@ -16,6 +16,7 @@ library(ltm)
 #library(brglm)
 library(Hmisc)
 library(reshape2)
+
 ##########################################################################
 liege_CD4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_2.csv', header = T, na.strings=c(""))
 
@@ -104,6 +105,7 @@ liege_master$ETHNIC <- gsub("africain", "Africain", liege_master$ETHNIC)
 liege_master$ETHNIC <- gsub("caucasien", "Caucasien", liege_master$ETHNIC)
 
 #make a new column that is number of co-morbidities each patient experienced
+
 liege_master[, num_CMs := .N, by=IDENT_NR][is.na(CLIN_EVENT_ID), num_CMs := 0]
 liege_master[, num_CMs := as.numeric(num_CMs)]
 
@@ -128,7 +130,7 @@ liege_death$DEATH_DATE[liege_death$DEATH_DATE == "1911-11-11"]<- NA
 liege_all <- as.data.table(merge(liege_death, liege_master, by = "IDENT_NR", all = TRUE))
 
 #remove rows that are deceased patients
-liege_alive <- as.data.table(liege_death[-c(1:26),])
+liege_alive <- as.data.table(liege_all[-c(1:26),])
 
 #remove death columns
 liege_alive[, c("CAUSE_DEATH", "DEATH_DATE") := NULL]
@@ -221,7 +223,6 @@ Liege_not_LTFU$gender <- gsub("O", "Other", Liege_not_LTFU$gender)
 
 names(pierre_not_LTFU)[3] <- 'gender'
 
-#boxplot(Liege_not_LTFU$age, horizontal=TRUE, main="Age - Liege")
 #with diamond at the mean
 liege_plot <- ggplot(Liege_not_LTFU, aes(gender, age, fill=gender)) + geom_boxplot() +
   stat_summary(fun.y=mean, geom="point", shape=5, size=6) + scale_fill_manual(values = c("seagreen3", "dodgerblue3", "salmon2")) + scale_y_continuous(breaks=seq(0,85,5)) + ggtitle("Age & Gender Distribution - Liège")
@@ -237,12 +238,12 @@ liege_death <- subset(liege_all, STATUS == "Death")
 liege_death$death_age <- age_years(liege_death$BIRTH_DATE, liege_death$DEATH_DATE)
 
 #bin the age groups by 5 years
-breaks <- seq(0,85, by=5)
-liege_all$liege_binned <- cut(liege_all$age, breaks, include.lowest = T)
-levels(liege_all$liege_binned) <- c("0-5","6-10","11-15",
+breaks <- seq(0,90, by=5)
+liege_all$age_binned <- cut(liege_all$age, breaks, include.lowest = T)
+levels(liege_all$age_binned) <- c("0-5","6-10","11-15",
                                  "16-20","21-25", "26-30","31-35","36-40",
                                  "41-45","46-50","51-55", "56-60", "61-65",
-                                 "66-70", "71-75", "76-80", "81-85")
+                                 "66-70", "71-75", "76-80", "81-85", "86-90")
 
 #bin death ages
 liege_death$death_binned <- cut(liege_death$age, breaks, include.lowest = T)
@@ -637,23 +638,202 @@ DT_ART2$yes <- ifelse(DT_ART2$years_on_ART >= 1, 1, 0)
 1241-1103
 
 
+######ERASME DATA#######################################################
+
+erasme_base <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_base.csv', header = T, na.strings=c(""))
+
+erasme_ART <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_ART.csv', header = T, na.strings=c(""))
+
+#find the maximum value of years on any ART for each patient
+erasme_years_ART <- aggregate(art_duration ~ patient_id, data = erasme_ART, max)
+
+#this is most recent cd4 count, still waiting on nadir
+erasme_cd4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_CD4.csv', header = T, na.strings=c(""))
+
+
+#aggregate the different CM dataframes
+erasme_cancer <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_cancer.csv', header = T, na.strings=c(""))
+
+erasme_cvd <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_cvd.csv', header = T, na.strings=c(""))
+
+erasme_diabetes <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_diabetes.csv', header = T, na.strings=c(""))
+
+erasme_hta <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_hta.csv', header = T, na.strings=c(""))
+
+erasme_liver <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_liver.csv', header = T, na.strings=c(""))
+
+erasme_renal <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_renal.csv', header = T, na.strings=c(""))
+
+
+###Notes
+
+###when comining liver data with base dataset, 0 = no liver disease
+#mortality data: need to divide the cause specific mortality rate by the number of
+  # px from each age group in the cohort, graph next to the normal background mortality
+    #of Belgium, saved in Excel
+#table on p 60 of CDC document could be a good model for summary statistics table
+#what to do about drug data?
+
+#case rates by region of origin? (cases per 100,000 population)
+
+#exposure category for Pierre and Liege? would need to ask for it
+
+#subset dead patients
+
+erasme_dead <- subset(erasme_base, DEATH_Date != "NA")
+
+erasme_ART$art_name <- as.character(erasme_ART$art_name)
+
+erasme_ART <- within(erasme_ART, art_name[art_name == 'Agenerase' | art_name == 'Viracept' 
+                                          | art_name == 'Artivus' | art_name == 'Crixivan'
+                                          | art_name == 'Fortovase' | art_name == 'Invirase'
+                                          | art_name == ' Norvir' | art_name == 'Prezista'
+                                          | art_name == 'Reyataz' | art_name == 'Rezolsta'
+                                          | art_name == 'Telzir' | art_name == 'Tivicay'
+                                          | art_name == 'Norvir' | art_name == 'Aptivus'] <- 'PI')
+
+
+erasme_ART <- within(erasme_ART, art_name[art_name == 'Edurant' | art_name == 'Intelence' |
+                                            art_name == 'Stocrin' | art_name == 'Viramune'] <- 'NNRTI')
+
+
+erasme_ART <- within(erasme_ART, art_name[art_name == 'Emtriva' | art_name == 'Epivir' |
+                                            art_name == 'Hivid' | art_name == 'Kivexa'
+                                          | art_name == 'Retrovir' | art_name == 'Videx'
+                                          | art_name == 'Viread' | art_name == 'Zerit'
+                                          | art_name == 'Ziagen'] <- 'NRTI')
+
+erasme_ART <- within(erasme_ART, art_name[art_name == 'Atripla' | art_name == 'Combivir' |
+                                            art_name == 'Eviplera' | art_name == 'Kaletra'
+                                          | art_name == 'Stribild' | art_name == 'Triumeq'
+                                          | art_name == 'Trizivir' | art_name == 'Truvada'] <- 'comb')
+
+
+erasme_ART <- within(erasme_ART, art_name[art_name == 'Celsentri'] <- 'Entry_inhib')
+
+erasme_ART <- within(erasme_ART, art_name[art_name == 'Fuzeon'] <- 'Fusion_inhib')
+
+erasme_ART <- within(erasme_ART, art_name[art_name == 'Isentress'] <- 'Integrase_inhib')
+
+#convert back to factor
+
+erasme_ART$art_name <- as.factor(erasme_ART$art_name)
+
+#dcast data
+
+erasme_ART <- as.data.table(erasme_ART)
+erasme_ART[, id := 1:.N, by = patient_id]
+erasme_ART_cast <- dcast(erasme_ART[,list(patient_id, id, art_name)], patient_id ~ id, value.var = 'art_name', fill = 0)
+
+###Come back to that, for now deal with mortality
+erasme_alive <- erasme_base[is.na(erasme_base$DEATH_Date),]
+
+erasme_alive$age_binned <- cut(erasme_alive$AGE, breaks, include.lowest = T)
+levels(erasme_alive$age_binned) <- c("0-5","6-10","11-15",
+                                             "16-20","21-25", "26-30","31-35","36-40",
+                                             "41-45","46-50","51-55", "56-60", "61-65",
+                                             "66-70", "71-75", "76-80", "81-85", "86-90")
+
+#make a stacked bar chart of the age distributions
+
+#liege_all has binned ages
+#st_pierre_px needs binned
+
+st_pierre_alive$age_binned <- cut(st_pierre_alive$age, breaks, include.lowest = T)
+levels(st_pierre_alive$age_binned) <- c("0-5","6-10","11-15",
+                                    "16-20","21-25", "26-30","31-35","36-40",
+                                    "41-45","46-50","51-55", "56-60", "61-65",
+                                    "66-70", "71-75", "76-80", "81-85", "86-90")
+
+liege_alive$age_binned <- cut(liege_alive$age, breaks, include.lowest = T)
+levels(liege_alive$age_binned) <- c("0-5","6-10","11-15",
+                                        "16-20","21-25", "26-30","31-35","36-40",
+                                        "41-45","46-50","51-55", "56-60", "61-65",
+                                        "66-70", "71-75", "76-80", "81-85", "86-90")
 
 
 
+#cut down on the size of the data frames, try just age first
+#include only living patients
+
+liege_alive$GENDER <- gsub("F", "Female", liege_alive$GENDER)
+liege_alive$GENDER <- gsub("M", "Male", liege_alive$GENDER)
+liege_alive$GENDER <- gsub("O", "Other", liege_alive$GENDER)
+
+pierre_age_df <- data.frame(id = st_pierre_alive$ID_PATIENT, age = st_pierre_alive$age, age_binned = st_pierre_alive$age_binned, gender = st_pierre_alive$GENDER)
+liege_age_df <- data.frame(id = liege_alive$IDENT_NR, age = liege_alive$age, age_binned = liege_alive$age_binned, gender = liege_alive$GENDER)
+erasme_age_df <- data.frame(id = erasme_alive$patient_id, age = erasme_alive$AGE, age_binned = erasme_alive$age_binned, gender = erasme_alive$GENDER)
+
+#one combined DF
+all_age <- rbind(pierre_age_df, liege_age_df, erasme_age_df)
+
+#subset for males, females
+pierre_age_males <- subset(pierre_age_df, gender == "Male")
+pierre_age_females <- subset(pierre_age_df, gender == "Female")
+
+#freq tables for histgrams
+
+pierre_age_freq <- data.frame(table(pierre_age_df$age_binned))
+liege_age_freq <- data.frame(table(liege_age_df$age_binned))
+erasme_age_freq <- data.frame(table(erasme_age_df$age_binned))
+
+#gender divided freq tables
+
+pierre_age_male_freq <- data.frame(table(pierre_age_males$age_binned))
+
+#combine into one dataframe to get an overall age distribution
+
+#basic plot
+ggplot(data = pierre_age_male_freq, aes(Var1, Freq) ) +
+  geom_bar(stat="identity")
+
+#do age and gender distro in both boxplot and histogram format?
+
+########
+#boxplots, separate
+#with diamond at the mean
+liege_box_age <- ggplot(liege_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
+  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
+  scale_fill_manual(values = c("seagreen3", "dodgerblue3", "salmon2")) + 
+  scale_y_continuous(breaks=seq(0,95,5)) + 
+  ggtitle("Liège")
+
+pierre_box_age <- ggplot(pierre_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
+  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
+  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
+  scale_y_continuous(breaks=seq(0,95,5)) + 
+  ggtitle("St. Pierre")
+
+erasme_box_age <- ggplot(erasme_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
+  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
+  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
+  scale_y_continuous(breaks=seq(0,95,5)) + 
+  ggtitle("Erasme")
+
+all_box_age <- ggplot(all_age, aes(gender, age, fill=gender)) + geom_boxplot() +
+  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
+  scale_fill_manual(values = c("seagreen3", "dodgerblue3", "salmon2")) + 
+  scale_y_continuous(breaks=seq(0,95,5)) + 
+  ggtitle("Age & Gender Distribution - All")
+
+#to make a common legend for all
+# go here: http://stackoverflow.com/questions/13649473/add-a-common-legend-for-combined-ggplots
 
 
+require(gridExtra)
+grid.arrange(all_box_age + theme(legend.position="none"), arrangeGrob(liege_box_age + theme(legend.position="none"),
+                                      pierre_box_age + theme(legend.position="none"), 
+                                      erasme_box_age + theme(legend.position="none"),
+                                      ncol=3), heights=c(2.5/4, 1.5/4), ncol=1)
 
-############## old code
+                                       
+age_distro_tmp <- merge(pierre_age_freq, liege_age_freq, by = "Var1", all.x=TRUE, all.y=TRUE)
+age_distro <- merge(age_distro_tmp, erasme_age_freq, by = "Var1", all.x=TRUE, all.y=TRUE)
 
-#restructure the data so that there is only one row per ID
-#pierre_events_smoke <- pierre_events_smoke[, c(smoke_new = paste(EVER_SMOKED_AT_EVENT, collapse = "; "), .SD), by = ID_PATIENT]
-#pierre_events_smoke <- pierre_events_smoke[!duplicated(pierre_events_smoke$ID_PATIENT)]
+age_bar <- ggplot(data=age_distro, aes(x=Var1, y=Freq)) + geom_bar(stat="identity") + ggtitle("Comorbidities (non-AIDS defining) - Liège") + scale_fill_discrete(name="Comorbidity Legend",
+                                                                                                                                           breaks=c("ACS", "ASCI", "DIA", "ESRD", "FRA", "NADM", "STR"),
+                                                                                                                                                                            labels=c("Acute coronary syndrome", "Ascites", "Diabetes mellitus", "End stage renal disease", "Bone fracture", "Non-AIDS defining malignancies", "Stroke"))
+####
+  
+  geom_bar(aes(weight=numbers, fill = component), position = 'fill') + scale_y_continuous("", breaks=NA) + scale_fill_manual(values = rev(brewer.pal(6, "Purples")))
 
-#split the strings of multiple numbers into 4 new cols
-#pierre_events_smoke[, c("smoke1", "smoke2", "smoke3", "smoke4") := tstrsplit(as.character(smoke_new), "; ", fixed=TRUE)]
-
-#make columns numeric
-#pierre_events_smoke <- pierre_events_smoke[, lapply(.SD, as.numeric), by = ID_PATIENT]
-
-#call the function to replace NA with 0
-#func_na(pierre_events_smoke)
