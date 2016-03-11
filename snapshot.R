@@ -16,6 +16,7 @@ library(ltm)
 #library(brglm)
 library(Hmisc)
 library(reshape2)
+library(tidyr)
 
 ##########################################################################
 liege_CD4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_2.csv', header = T, na.strings=c(""))
@@ -682,48 +683,182 @@ erasme_renal <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Be
 
 erasme_dead <- subset(erasme_base, DEATH_Date != "NA")
 
-erasme_ART$art_name <- as.character(erasme_ART$art_name)
-
-erasme_ART <- within(erasme_ART, art_name[art_name == 'Agenerase' | art_name == 'Viracept' 
-                                          | art_name == 'Artivus' | art_name == 'Crixivan'
-                                          | art_name == 'Fortovase' | art_name == 'Invirase'
-                                          | art_name == ' Norvir' | art_name == 'Prezista'
-                                          | art_name == 'Reyataz' | art_name == 'Rezolsta'
-                                          | art_name == 'Telzir' | art_name == 'Tivicay'
-                                          | art_name == 'Norvir' | art_name == 'Aptivus'] <- 'PI')
-
-
-erasme_ART <- within(erasme_ART, art_name[art_name == 'Edurant' | art_name == 'Intelence' |
-                                            art_name == 'Stocrin' | art_name == 'Viramune'] <- 'NNRTI')
-
-
-erasme_ART <- within(erasme_ART, art_name[art_name == 'Emtriva' | art_name == 'Epivir' |
-                                            art_name == 'Hivid' | art_name == 'Kivexa'
-                                          | art_name == 'Retrovir' | art_name == 'Videx'
-                                          | art_name == 'Viread' | art_name == 'Zerit'
-                                          | art_name == 'Ziagen'] <- 'NRTI')
-
-erasme_ART <- within(erasme_ART, art_name[art_name == 'Atripla' | art_name == 'Combivir' |
-                                            art_name == 'Eviplera' | art_name == 'Kaletra'
-                                          | art_name == 'Stribild' | art_name == 'Triumeq'
-                                          | art_name == 'Trizivir' | art_name == 'Truvada'] <- 'comb')
-
-
-erasme_ART <- within(erasme_ART, art_name[art_name == 'Celsentri'] <- 'Entry_inhib')
-
-erasme_ART <- within(erasme_ART, art_name[art_name == 'Fuzeon'] <- 'Fusion_inhib')
-
-erasme_ART <- within(erasme_ART, art_name[art_name == 'Isentress'] <- 'Integrase_inhib')
-
-#convert back to factor
-
-erasme_ART$art_name <- as.factor(erasme_ART$art_name)
 
 #dcast data
 
 erasme_ART <- as.data.table(erasme_ART)
 erasme_ART[, id := 1:.N, by = patient_id]
 erasme_ART_cast <- dcast(erasme_ART[,list(patient_id, id, art_name)], patient_id ~ id, value.var = 'art_name', fill = 0)
+
+###########################
+
+#drug data
+
+erasme_ART$art_start.date <- as.Date(erasme_ART$art_start.date, 
+                                     format = "%d-%m-%Y")
+erasme_ART$art_end.date <- as.Date(erasme_ART$art_end.date, 
+                                     format = "%d-%m-%Y")
+
+#subset to just the drugs that patients are still on (no end date)
+erasme_ART2015 <- subset(erasme_ART, is.na(erasme_ART$art_end.date))
+
+erasme_ART2015 <- as.data.table(erasme_ART2015)
+erasme_ART2015[, id := 1:.N, by = patient_id]
+erasme_ART2015_cast <- dcast(erasme_ART2015[,list(patient_id, id, art_name)], patient_id ~ id, value.var = 'art_name', fill = 0)
+
+#make the ID column a factor instead of integer
+erasme_ART2015$patient_id <- factor(erasme_ART2015$patient_id)    
+
+#add 1 to every row in column art_duration
+#be careful to only do this once
+erasme_ART2015$art_duration <- erasme_ART2015$art_duration + 1
+
+#exclude rows where data is not available for both the art duration and the drug name
+erasme_ART2015 <- as.data.frame(erasme_ART2015)
+erasme_ART2015 <- erasme_ART2015[!is.na(erasme_ART2015["art_duration"]),]
+
+
+#use tidyr to convert the data from long to wide format
+#erasme_ART2015_wide <-spread(erasme_ART2015, art_name, art_duration)
+#erasme_ART2015_wide <- dcast(erasme_ART2015, patient_id ~ art_name, value.var = "art_duration", sum)
+
+erasme_ART2015$art_name <- as.character(erasme_ART2015$art_name)
+
+#see what happens if I remove art drugs which have fewer than 6 patients
+#erasme_ART2015 <- erasme_ART2015[erasme_ART2015$art_name %in% names(which(table(erasme_ART2015$art_name) > 5)),]
+
+
+
+######build plots of age freq vs drug type
+
+
+erasme_art_count <- count(erasme_ART2015, 'art_name')
+#add a column that specifies the drug class
+erasme_art_count$drug_class <- vector(mode='character', length=length(erasme_art_count))
+
+#only include drugs which appear in erasme_art_count
+erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Invirase', 'Norvir', 'Prezista', 'Reyataz', 
+                                                         'Rezolsta', 'Telzir', 'Tivicay')] <- 'PI'
+
+erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Edurant' , 'Intelence', 'Stocrin',
+                                                         'Viramune')] <- 'NNRTI'
+
+
+erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Emtriva', 'Epivir', 'Kivexa', 'Retrovir', 'Videx',
+                                                         'Videz', 'Viread', 'Zerit', 'Ziagen')] <- 'NRTI'
+
+
+erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Atripla', 'Combivir', 'Eviplera',
+                                                         'Kaletra', 'Stribild', 'Triumeq',
+                                                         'Trizivir', 'Truvada')] <- 'comb'
+
+erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Celsentri')] <- 'Entry_inhib'
+#erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Fuzeon')] <- 'Fusion_inhib'
+erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Isentress')] <- 'Integrase_inhib'
+erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Other test drug')] <- 'Other_test_drug'
+
+erasme_art_count$drug_class <- factor(erasme_art_count$drug_class)
+
+dropme <- subset(erasme_art_count, drug_class != 'Entry_inhib')
+dropme2 <- subset(dropme, drug_class != 'Integrase_inhib')
+dropme3 <- subset(dropme2, drug_class != 'Other_test_drug')
+
+erasme_art_new <- droplevels(dropme3)
+
+test1 <- ggplot(data = erasme_art_new, aes(x=drug_class, y=freq, color=art_name) ) +
+  geom_bar(stat="identity")
+
+test2 <- ggplot(data = erasme_art_new, aes(x=drug_class, y=freq, fill=art_name) ) +
+  geom_bar(stat="identity") + scale_fill_manual(values=getPalette(colorCount))
+
+#try doing separate graphs that share a y axis, change the color scale for each
+erasme_art_pi <- subset(erasme_art_new, drug_class == "PI")
+erasme_art_nnrti <- subset(erasme_art_new, drug_class == "NNRTI")
+erasme_art_nrti <- subset(erasme_art_new, drug_class == "NRTI")
+erasme_art_comb <- subset(erasme_art_new, drug_class == "comb")
+# erasme_art_int_inhib <- subset(erasme_ART2015, drug_class == "Integrase_inhib")
+# 
+
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+#############################################################################
+
+# drug_plots <- function(df) {
+#   ggplot(df, aes(x=drug_class, y=art_name, fill=art_name)) + 
+#     stat_summary(fun.y="mean", geom="bar", position="dodge") + 
+#     scale_fill_brewer(palette="Set1", name="ART name") + theme(axis.title.x = element_blank())
+# }
+
+grid.arrange(drug_plots(erasme_art_comb), drug_plots(erasme_art_pi), drug_plots(erasme_art_nnrti), 
+             drug_plots(erasme_art_nrti))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#try a ggplot with the data in long format
+
+#ggplot(data = erasme_ART2015, aes(x=patient_id, y=art_duration, color= drug_class)) + 
+  #geom_point(shape=1)
+
+#ggplot(data = erasme_ART2015, aes(x=patient_id, y=art_duration, fill= drug_class)) + 
+  #geom_bar(stat="identity")
+
+#ggplot(data = erasme_ART2015, aes(x=art_name, y=art_duration, fill= drug_class)) + 
+  #geom_bar(stat="identity") 
+
+
+#expand color palette
+erasme_ART2015$art_name <- factor(erasme_ART2015$art_name)
+
+colorCount = length(unique(erasme_ART2015$art_name))
+getPalette = colorRampPalette(brewer.pal(9, "Set1"))
+
+ggplot(erasme_ART2015, aes(x=drug_class, y=art_duration, fill=art_name)) + 
+  stat_summary(fun.y="mean", geom="bar", position="dodge") + coord_flip() + 
+  scale_fill_manual(values=getPalette(colorCount))
+
+#try breaking them up
+
+
+###########
+#revamp so the y axis is freq of px
+#do something else with art_duration
+
+ggplot(erasme_ART2015, aes(x=drug_class, y=art_duration, fill=art_name)) + 
+  stat_summary(fun.y="mean", geom="bar", position="dodge") + 
+  scale_fill_manual(values=getPalette(colorCount)) 
+
+#avg duration by drug class
+#erasme_art_wide <- dcast(erasme_ART2015, patient_id ~ drug_class, 
+                         #value.var = "art_duration", fun.aggregate = mean)
+
+#erasme_art_long <- melt(erasme_art_wide,
+                #  id.vars= "patient_id",
+                #  measure.vars=c("comb",	"Entry_inhib", "Integrase_inhib",
+                  #               "NNRTI", "NRTI",	"Other_test_drug", "PI"),
+                #  variable.name="drug_class",
+                #  value.name="art_duration"
+#)
+
+#########################################################
 
 ###Come back to that, for now deal with mortality
 erasme_alive <- erasme_base[is.na(erasme_base$DEATH_Date),]
@@ -777,17 +912,43 @@ pierre_age_freq <- data.frame(table(pierre_age_df$age_binned))
 liege_age_freq <- data.frame(table(liege_age_df$age_binned))
 erasme_age_freq <- data.frame(table(erasme_age_df$age_binned))
 
-#gender divided freq tables
+#make freq a percentage of total
+freq_perc <- function(df) {
+  df$freq_percent <- as.vector(df$Freq/sum(df$Freq))
+  return(df)
+}
 
-pierre_age_male_freq <- data.frame(table(pierre_age_males$age_binned))
+liege_age_freq_perc <- freq_perc(liege_age_freq)
+pierre_age_freq_perc <- freq_perc(pierre_age_freq)
+erasme_age_freq_perc <- freq_perc(erasme_age_freq)
 
-#combine into one dataframe to get an overall age distribution
+#all age
+all_age_freq <- data.frame(table(all_age$age_binned))
+all_age_freq_perc <- freq_perc(all_age_freq)
 
-#basic plot
-ggplot(data = pierre_age_male_freq, aes(Var1, Freq) ) +
-  geom_bar(stat="identity")
+#historgrams
+liege_bar_age <- ggplot(data = liege_age_freq_perc, aes(Var1, freq_percent) ) +
+  geom_bar(stat="identity", fill = "seagreen4") + xlab("Age groups") + ylab("Frequency (as % of total)") +
+  ggtitle("Liège") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
-#do age and gender distro in both boxplot and histogram format?
+pierre_bar_age <- ggplot(data = pierre_age_freq_perc, aes(Var1, freq_percent) ) +
+  geom_bar(stat="identity", fill = "seagreen4") + xlab("Age groups") + ylab("Frequency (as % of total)") +
+  ggtitle("St. Pierre") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+erasme_bar_age <- ggplot(data = erasme_age_freq_perc, aes(Var1, freq_percent) ) +
+  geom_bar(stat="identity", fill = "seagreen4") + xlab("Age groups") + ylab("Frequency (as % of total)") +
+  ggtitle("Erasme") + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+all_bar_age <- ggplot(data = all_age_freq_perc, aes(Var1, freq_percent) ) +
+  geom_bar(stat="identity", fill = "dodgerblue4") + xlab("Age groups") + ylab("Frequency (as % of total)") +
+  ggtitle("Age distribution - All") 
+
+
+require(gridExtra)
+grid.arrange(all_bar_age, arrangeGrob(liege_bar_age, pierre_bar_age,
+                                      erasme_bar_age, ncol=3), 
+             heights=c(2.5/4, 1.5/4), ncol=1)
+
 
 ########
 #boxplots, separate
@@ -819,21 +980,11 @@ all_box_age <- ggplot(all_age, aes(gender, age, fill=gender)) + geom_boxplot() +
 #to make a common legend for all
 # go here: http://stackoverflow.com/questions/13649473/add-a-common-legend-for-combined-ggplots
 
-
-require(gridExtra)
 grid.arrange(all_box_age + theme(legend.position="none"), arrangeGrob(liege_box_age + theme(legend.position="none"),
                                       pierre_box_age + theme(legend.position="none"), 
                                       erasme_box_age + theme(legend.position="none"),
                                       ncol=3), heights=c(2.5/4, 1.5/4), ncol=1)
-
-                                       
-age_distro_tmp <- merge(pierre_age_freq, liege_age_freq, by = "Var1", all.x=TRUE, all.y=TRUE)
-age_distro <- merge(age_distro_tmp, erasme_age_freq, by = "Var1", all.x=TRUE, all.y=TRUE)
-
-age_bar <- ggplot(data=age_distro, aes(x=Var1, y=Freq)) + geom_bar(stat="identity") + ggtitle("Comorbidities (non-AIDS defining) - Liège") + scale_fill_discrete(name="Comorbidity Legend",
-                                                                                                                                           breaks=c("ACS", "ASCI", "DIA", "ESRD", "FRA", "NADM", "STR"),
+                                                                                                                                         breaks=c("ACS", "ASCI", "DIA", "ESRD", "FRA", "NADM", "STR"),
                                                                                                                                                                             labels=c("Acute coronary syndrome", "Ascites", "Diabetes mellitus", "End stage renal disease", "Bone fracture", "Non-AIDS defining malignancies", "Stroke"))
-####
-  
-  geom_bar(aes(weight=numbers, fill = component), position = 'fill') + scale_y_continuous("", breaks=NA) + scale_fill_manual(values = rev(brewer.pal(6, "Purples")))
+#####################################
 

@@ -60,3 +60,23 @@ test <- big_func(bmi_dt, bmi, id)
 
 #remove unnecessary columns from bmi_dt
 bmi_dt[, c(2, 3):=NULL]
+
+
+
+
+
+
+############## old code
+
+#restructure the data so that there is only one row per ID
+#pierre_events_smoke <- pierre_events_smoke[, c(smoke_new = paste(EVER_SMOKED_AT_EVENT, collapse = "; "), .SD), by = ID_PATIENT]
+#pierre_events_smoke <- pierre_events_smoke[!duplicated(pierre_events_smoke$ID_PATIENT)]
+
+#split the strings of multiple numbers into 4 new cols
+#pierre_events_smoke[, c("smoke1", "smoke2", "smoke3", "smoke4") := tstrsplit(as.character(smoke_new), "; ", fixed=TRUE)]
+
+#make columns numeric
+#pierre_events_smoke <- pierre_events_smoke[, lapply(.SD, as.numeric), by = ID_PATIENT]
+
+#call the function to replace NA with 0
+#func_na(pierre_events_smoke)
