@@ -17,7 +17,8 @@ library(ltm)
 library(Hmisc)
 library(reshape2)
 library(tidyr)
-
+library(plyr)
+library(RColorBrewer)
 ##########################################################################
 liege_CD4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_2.csv', header = T, na.strings=c(""))
 
@@ -239,40 +240,34 @@ liege_death <- subset(liege_all, STATUS == "Death")
 liege_death$death_age <- age_years(liege_death$BIRTH_DATE, liege_death$DEATH_DATE)
 
 #bin the age groups by 5 years
-breaks <- seq(0,90, by=5)
-liege_all$age_binned <- cut(liege_all$age, breaks, include.lowest = T)
-levels(liege_all$age_binned) <- c("0-5","6-10","11-15",
-                                 "16-20","21-25", "26-30","31-35","36-40",
-                                 "41-45","46-50","51-55", "56-60", "61-65",
-                                 "66-70", "71-75", "76-80", "81-85", "86-90")
+breaks <- seq(0,95, by=5)
+age_groups <- c("0-5","6-10","11-15","16-20","21-25", "26-30","31-35","36-40","41-45",
+  "46-50","51-55", "56-60", "61-65","66-70", "71-75", "76-80",
+  "81-85", "86-90","90-95")
 
-#bin death ages
-liege_death$death_binned <- cut(liege_death$age, breaks, include.lowest = T)
-levels(liege_death$death_binned) <- c("0-5","6-10","11-15",
-                                      "16-20","21-25", "26-30","31-35","36-40",
-                                      "41-45","46-50","51-55", "56-60", "61-65",
-                                      "66-70", "71-75", "76-80", "81-85")
+binning_ages <- function(df) {
+  df$age_binned <- cut(df$age, breaks, include.lowest=T)
+  levels(df$age_binned) <- age_groups
+  return(df)
+}
 
+liege_all <- binning_ages(liege_all)
+liege_death <- binning_ages(liege_death)
+Liege_not_LTFU <- binning_ages(Liege_not_LTFU)
 
 #do the same for Pierre
 
 #create pierre death
 pierre_death <- subset(st_pierre_events, OUTCOME == "12 - DEATH")
+names(pierre_death)[6] <- "age"
 
-#bin the age groups by 5 years
+#bin the age groups
+
 pierre_not_LTFU_all <- subset(st_pierre_px, LTFU == "0")
-pierre_not_LTFU_all$pierre_binned <- cut(pierre_not_LTFU_all$age, breaks, include.lowest = T)
-levels(pierre_not_LTFU_all$pierre_binned) <- c("0-5","6-10","11-15",
-                                 "16-20","21-25", "26-30","31-35","36-40",
-                                 "41-45","46-50","51-55", "56-60", "61-65",
-                                 "66-70", "71-75", "76-80", "81-85")
+pierre_not_LTFU_all <- binning_ages(pierre_not_LTFU_all)
 
 #bin death ages
-pierre_death$death_binned <- cut(pierre_death$AGE_AT_EVENT, breaks, include.lowest = T)
-levels(pierre_death$death_binned) <- c("0-5","6-10","11-15",
-                                      "16-20","21-25", "26-30","31-35","36-40",
-                                      "41-45","46-50","51-55", "56-60", "61-65",
-                                      "66-70", "71-75", "76-80", "81-85")
+pierre_death <- binning_ages(pierre_death)
 
 #now skip down to bottom for table mortality calculations
 
@@ -318,14 +313,16 @@ liege_events$Freq[liege_events$Freq == 63] <- 72
 liege_events$Freq[liege_events$Freq == 1] <- 3
 liege_events$Freq[liege_events$Freq == 18] <- 23
 
-bp <- ggplot(data=liege_events, aes(x=1, y=Freq, fill = CM)) + geom_bar(stat="identity")
-p <- bp + ggtitle("Comorbidities (non-AIDS defining) - Liège") + coord_polar(theta='y')
-p <- p + geom_bar(stat="identity", color="black") + guides(fill=guide_legend(override.aes=list(colour=NA)))
-p <- p + theme(axis.ticks=element_blank(), axis.title=element_blank(), axis.text.y=element_blank()) 
+bp <- ggplot(data=liege_events, aes(x=1, y=Freq, fill = CM)) + 
+  geom_bar(stat="identity", color="black") + 
+  ggtitle("Comorbidities (non-AIDS defining) - Liège") + 
+  coord_polar(theta='y') + 
+  guides(fill=guide_legend(override.aes=list(colour=NA))) + 
+  theme(axis.ticks=element_blank(), axis.title=element_blank(), axis.text.y=element_blank()) 
 
 y.breaks <- cumsum(liege_events$Freq) - liege_events$Freq/2
 
-liege_pie <- p + theme(axis.text.x=element_text(color='black')) +
+liege_pie <- bp + theme(axis.text.x=element_text(color='black')) +
   scale_y_continuous(
     breaks=y.breaks,   # where to place the labels
     labels=liege_events$CM # the labels
@@ -357,14 +354,16 @@ pierre_events <- as.data.frame(c("RD", "DIA", "CVD", "NADM"))
 pierre_events$Freq <- (c(402, 160, 79, 43))
 names(pierre_events)[1] <- "CM"
 
-bp <- ggplot(data=pierre_events, aes(x=1, y=Freq, fill = CM)) + geom_bar(stat="identity")
-p <- bp + ggtitle("Comorbidities (non-AIDS defining) - St. Pierre") + coord_polar(theta='y')
-p <- p + geom_bar(stat="identity", color="black") + guides(fill=guide_legend(override.aes=list(colour=NA)))
-p <- p + theme(axis.ticks=element_blank(), axis.title=element_blank(), axis.text.y=element_blank()) 
+pierre_plot <- ggplot(data=pierre_events, aes(x=1, y=Freq, fill = CM)) + 
+  geom_bar(stat="identity", color="black") + 
+  ggtitle("Comorbidities (non-AIDS defining) - St. Pierre") + 
+  coord_polar(theta='y') + geom_bar(stat="identity",) + 
+  guides(fill=guide_legend(override.aes=list(colour=NA))) + 
+  theme(axis.ticks=element_blank(), axis.title=element_blank(), axis.text.y=element_blank()) 
 
 y.breaks <- cumsum(pierre_events$Freq) - pierre_events$Freq/2
 
-pierre_pie <- p + theme(axis.text.x=element_text(color='black')) +
+pierre_pie <- pierre_bar + theme(axis.text.x=element_text(color='black')) +
   scale_y_continuous(
     breaks=y.breaks,   # where to place the labels
     labels=pierre_events$CM # the labels
@@ -376,37 +375,6 @@ pierre_bar <- ggplot(data=pierre_events, aes(x=CM, y=Freq, fill=CM)) + geom_bar(
                                                                                                                                                                             breaks=c("DIA", "CVD", "NADM", "RD"),
                                                                                                                                                                             labels=c("Diabetes mellitus", "Cardiovascular disease", "Non-AIDS defining malignancies", "Renal disease"))
 ####
-#mortality rates
-
-pierre_not_LTFU_dead <- subset(st_pierre_px, LTFU == "0")
-
-liege_not_LTFU_dead <- subset(liege_all, STATUS != "Contact lost")
-liege_dead_alive <- subset(liege_not_LTFU_dead, STATUS != "Transferred")
-age_tab_liege <- table(liege_dead_alive$liege_binned)
-age_tab_liege_dead <- table(liege_death$liege_binned)
-death_rates_liege <- age_tab_liege_dead/age_tab_liege
-
-#multiply by 1000 for mortality rate
-mortality_tab_liege <- as.data.frame(death_rates_liege*1000)
-
-#do the same for Pierre
-age_tab_pierre <- table(pierre_not_LTFU_all$pierre_binned)
-age_tab_pierre_dead <- table(pierre_death$death_binned)
-death_rates_pierre <- age_tab_pierre_dead/age_tab_pierre
-
-#multiply by 1000 for mortality rate
-mortality_tab_pierre <- as.data.frame(death_rates_pierre*1000)
-
-mortality_tabs <- merge(mortality_tab_liege, mortality_tab_pierre, by = "Var1", all = TRUE)
-#colnames(mortality_tabs)[1:3] <- c("Age", "Liege", "St. Pierre")
-colnames(mortality_tabs)[2:3] <- c("Liege", "St. Pierre")
-
-mortality_tabs_long <- melt(mortality_tabs, id="Age")  # convert to long format
-names(mortality_tabs_long)[2] <- "Cohort"
-
-ggplot(data=mortality_tabs_long,
-       aes(x=Age, y=value, group = Cohort, colour=Cohort)) +
-  geom_line(size=1.5) + ylab("Mortality rate (per 1,000)") + ggtitle("Age-specific mortality rates per 1,000 (crude)")
 
 #######################################################
 #lifestyle risk factors
@@ -642,7 +610,6 @@ DT_ART2$yes <- ifelse(DT_ART2$years_on_ART >= 1, 1, 0)
 ######ERASME DATA#######################################################
 
 erasme_base <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_base.csv', header = T, na.strings=c(""))
-
 erasme_ART <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_ART.csv', header = T, na.strings=c(""))
 
 #find the maximum value of years on any ART for each patient
@@ -651,18 +618,12 @@ erasme_years_ART <- aggregate(art_duration ~ patient_id, data = erasme_ART, max)
 #this is most recent cd4 count, still waiting on nadir
 erasme_cd4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_CD4.csv', header = T, na.strings=c(""))
 
-
 #aggregate the different CM dataframes
 erasme_cancer <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_cancer.csv', header = T, na.strings=c(""))
-
 erasme_cvd <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_cvd.csv', header = T, na.strings=c(""))
-
 erasme_diabetes <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_diabetes.csv', header = T, na.strings=c(""))
-
 erasme_hta <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_hta.csv', header = T, na.strings=c(""))
-
 erasme_liver <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_liver.csv', header = T, na.strings=c(""))
-
 erasme_renal <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_renal.csv', header = T, na.strings=c(""))
 
 
@@ -673,7 +634,6 @@ erasme_renal <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Be
   # px from each age group in the cohort, graph next to the normal background mortality
     #of Belgium, saved in Excel
 #table on p 60 of CDC document could be a good model for summary statistics table
-#what to do about drug data?
 
 #case rates by region of origin? (cases per 100,000 population)
 
@@ -682,6 +642,11 @@ erasme_renal <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Be
 #subset dead patients
 
 erasme_dead <- subset(erasme_base, DEATH_Date != "NA")
+erasme_dead$age_binned <- cut(erasme_dead$AGE, breaks, include.lowest = T)
+levels(erasme_dead$age_binned) <- c("0-5","6-10","11-15",
+                                             "16-20","21-25", "26-30","31-35","36-40",
+                                             "41-45","46-50","51-55", "56-60", "61-65",
+                                             "66-70", "71-75", "76-80", "81-85", "85-90", "90-95")
 
 
 #dcast data
@@ -717,24 +682,11 @@ erasme_ART2015$art_duration <- erasme_ART2015$art_duration + 1
 erasme_ART2015 <- as.data.frame(erasme_ART2015)
 erasme_ART2015 <- erasme_ART2015[!is.na(erasme_ART2015["art_duration"]),]
 
-
-#use tidyr to convert the data from long to wide format
-#erasme_ART2015_wide <-spread(erasme_ART2015, art_name, art_duration)
-#erasme_ART2015_wide <- dcast(erasme_ART2015, patient_id ~ art_name, value.var = "art_duration", sum)
-
 erasme_ART2015$art_name <- as.character(erasme_ART2015$art_name)
 
-#see what happens if I remove art drugs which have fewer than 6 patients
-#erasme_ART2015 <- erasme_ART2015[erasme_ART2015$art_name %in% names(which(table(erasme_ART2015$art_name) > 5)),]
-
-
-
-######build plots of age freq vs drug type
-
-
-erasme_art_count <- count(erasme_ART2015, 'art_name')
+erasme_art_count <- count(erasme_ART2015, vars = 'art_name')
 #add a column that specifies the drug class
-erasme_art_count$drug_class <- vector(mode='character', length=length(erasme_art_count))
+erasme_art_count$drug_class <- vector(mode='character', length=nrow(erasme_art_count))
 
 #only include drugs which appear in erasme_art_count
 erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Invirase', 'Norvir', 'Prezista', 'Reyataz', 
@@ -763,22 +715,36 @@ dropme <- subset(erasme_art_count, drug_class != 'Entry_inhib')
 dropme2 <- subset(dropme, drug_class != 'Integrase_inhib')
 dropme3 <- subset(dropme2, drug_class != 'Other_test_drug')
 
-erasme_art_new <- droplevels(dropme3)
+erasme_art_count <- droplevels(dropme3)
 
-test1 <- ggplot(data = erasme_art_new, aes(x=drug_class, y=freq, color=art_name) ) +
-  geom_bar(stat="identity")
 
-test2 <- ggplot(data = erasme_art_new, aes(x=drug_class, y=freq, fill=art_name) ) +
-  geom_bar(stat="identity") + scale_fill_manual(values=getPalette(colorCount))
+#load dplyr, it masks the count command from plyr so the above code cannot be repeated
+library(dplyr)
 
-#try doing separate graphs that share a y axis, change the color scale for each
-erasme_art_pi <- subset(erasme_art_new, drug_class == "PI")
-erasme_art_nnrti <- subset(erasme_art_new, drug_class == "NNRTI")
-erasme_art_nrti <- subset(erasme_art_new, drug_class == "NRTI")
-erasme_art_comb <- subset(erasme_art_new, drug_class == "comb")
-# erasme_art_int_inhib <- subset(erasme_ART2015, drug_class == "Integrase_inhib")
-# 
+## Add a column for positioning drug labels on graph
+erasme_art_count = erasme_art_count %>% group_by(drug_class) %>%
+  mutate(cum.freq = cumsum(freq) - 0.5*freq)
 
+## Create separate palette for each drug class
+
+# Count the number of colors we'll need for each bar
+ncol = table(erasme_art_count$drug_class)
+
+# Make the palettes
+pal = mapply(function(x,y) brewer.pal(x,y), ncol, c("PRGn","RdGy","BrBG","Dark2"))
+#pal[[2]] = pal[[2]][1:2]  # We only need 2 colors but brewer.pal creates 3 minimum
+pal = unname(unlist(pal)) # Combine palettes into single vector of colors
+
+erasme_art_names <- ggplot(data = erasme_art_count, aes(x=drug_class, y=freq, fill=art_name) ) + 
+  geom_bar(stat="identity", colour="black", lwd=0.2) +
+  geom_text(aes(label=paste0(art_name,": ", freq), y=cum.freq, size=freq), colour="grey20", fontface="bold") +
+  xlab("Drug class") + ylab("Number of patients") + 
+  ggtitle("Erasme ART drug counts") +
+  scale_fill_manual(values=pal) +
+  guides(fill=FALSE)
+
+
+############################################################################
 #############################################################################
 #############################################################################
 #############################################################################
@@ -787,105 +753,23 @@ erasme_art_comb <- subset(erasme_art_new, drug_class == "comb")
 #############################################################################
 #############################################################################
 #############################################################################
-#############################################################################
-
-# drug_plots <- function(df) {
-#   ggplot(df, aes(x=drug_class, y=art_name, fill=art_name)) + 
-#     stat_summary(fun.y="mean", geom="bar", position="dodge") + 
-#     scale_fill_brewer(palette="Set1", name="ART name") + theme(axis.title.x = element_blank())
-# }
-
-grid.arrange(drug_plots(erasme_art_comb), drug_plots(erasme_art_pi), drug_plots(erasme_art_nnrti), 
-             drug_plots(erasme_art_nrti))
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#try a ggplot with the data in long format
-
-#ggplot(data = erasme_ART2015, aes(x=patient_id, y=art_duration, color= drug_class)) + 
-  #geom_point(shape=1)
-
-#ggplot(data = erasme_ART2015, aes(x=patient_id, y=art_duration, fill= drug_class)) + 
-  #geom_bar(stat="identity")
-
-#ggplot(data = erasme_ART2015, aes(x=art_name, y=art_duration, fill= drug_class)) + 
-  #geom_bar(stat="identity") 
-
-
-#expand color palette
-erasme_ART2015$art_name <- factor(erasme_ART2015$art_name)
-
-colorCount = length(unique(erasme_ART2015$art_name))
-getPalette = colorRampPalette(brewer.pal(9, "Set1"))
-
-ggplot(erasme_ART2015, aes(x=drug_class, y=art_duration, fill=art_name)) + 
-  stat_summary(fun.y="mean", geom="bar", position="dodge") + coord_flip() + 
-  scale_fill_manual(values=getPalette(colorCount))
-
-#try breaking them up
-
-
-###########
-#revamp so the y axis is freq of px
-#do something else with art_duration
-
-ggplot(erasme_ART2015, aes(x=drug_class, y=art_duration, fill=art_name)) + 
-  stat_summary(fun.y="mean", geom="bar", position="dodge") + 
-  scale_fill_manual(values=getPalette(colorCount)) 
-
-#avg duration by drug class
-#erasme_art_wide <- dcast(erasme_ART2015, patient_id ~ drug_class, 
-                         #value.var = "art_duration", fun.aggregate = mean)
-
-#erasme_art_long <- melt(erasme_art_wide,
-                #  id.vars= "patient_id",
-                #  measure.vars=c("comb",	"Entry_inhib", "Integrase_inhib",
-                  #               "NNRTI", "NRTI",	"Other_test_drug", "PI"),
-                #  variable.name="drug_class",
-                #  value.name="art_duration"
-#)
 
 #########################################################
 
 ###Come back to that, for now deal with mortality
+
 erasme_alive <- erasme_base[is.na(erasme_base$DEATH_Date),]
-
-erasme_alive$age_binned <- cut(erasme_alive$AGE, breaks, include.lowest = T)
-levels(erasme_alive$age_binned) <- c("0-5","6-10","11-15",
-                                             "16-20","21-25", "26-30","31-35","36-40",
-                                             "41-45","46-50","51-55", "56-60", "61-65",
-                                             "66-70", "71-75", "76-80", "81-85", "86-90")
-
+names(erasme_alive)[5] <- "age"
+erasme_alive <- binning_ages(erasme_alive)
 #make a stacked bar chart of the age distributions
 
 #liege_all has binned ages
 #st_pierre_px needs binned
 
-st_pierre_alive$age_binned <- cut(st_pierre_alive$age, breaks, include.lowest = T)
-levels(st_pierre_alive$age_binned) <- c("0-5","6-10","11-15",
-                                    "16-20","21-25", "26-30","31-35","36-40",
-                                    "41-45","46-50","51-55", "56-60", "61-65",
-                                    "66-70", "71-75", "76-80", "81-85", "86-90")
-
-liege_alive$age_binned <- cut(liege_alive$age, breaks, include.lowest = T)
-levels(liege_alive$age_binned) <- c("0-5","6-10","11-15",
-                                        "16-20","21-25", "26-30","31-35","36-40",
-                                        "41-45","46-50","51-55", "56-60", "61-65",
-                                        "66-70", "71-75", "76-80", "81-85", "86-90")
-
+st_pierre_alive <- binning_ages(st_pierre_alive)
+liege_alive <- binning_ages(liege_alive)
 
 
 #cut down on the size of the data frames, try just age first
@@ -988,3 +872,162 @@ grid.arrange(all_box_age + theme(legend.position="none"), arrangeGrob(liege_box_
                                                                                                                                                                             labels=c("Acute coronary syndrome", "Ascites", "Diabetes mellitus", "End stage renal disease", "Bone fracture", "Non-AIDS defining malignancies", "Stroke"))
 #####################################
 
+#do something with St. Pierre drug data
+
+#include gender in this
+pierre_gender <- merge(st_pierre_events, st_pierre_px, by= "ID_PATIENT", all.x=TRUE)
+
+pierre_renal <- subset(pierre_gender, OUTCOME == '1 - RENAL DISEASE')
+pierre_cvd <- subset(pierre_gender, OUTCOME == '2 - CVD')
+
+
+p_renal1 <- ggplot(data=pierre_renal, aes(x=DURATION_PI_MONTHS_AT_EVENT, y=AGE_AT_EVENT, colour= factor(GENDER))) +
+  geom_point() + labs(colour = "Gender") + 
+  xlab("Duration of PI exposure at event (months)") +
+  ylab("Age at event") +
+  ggtitle("St. Pierre - Renal")
+
+p_renal2 <- ggplot(data=pierre_renal, aes(x=DURATION_NRTI_MONTHS_AT_EVENT, y=AGE_AT_EVENT, colour= factor(GENDER))) +
+  geom_point() + labs(colour = "Gender") + 
+  xlab("Duration of NRTI exposure at event (months)") +
+  ylab("Age at event") 
+
+p_renal3 <- ggplot(data=pierre_renal, aes(x=DURATION_NNRTI_MONTHS_AT_EVENT, y=AGE_AT_EVENT, colour= factor(GENDER))) +
+  geom_point() + labs(colour = "Gender") + 
+  xlab("Duration of NRTI exposure at event (months)") +
+  ylab("Age at event")
+
+grid.arrange(p_renal1, p_renal2, p_renal3)
+
+p_cvd1 <- ggplot(data=pierre_cvd, aes(x=DURATION_PI_MONTHS_AT_EVENT, y=AGE_AT_EVENT, colour= factor(GENDER))) +
+  geom_point() + labs(colour = "Gender") + 
+  xlab("Duration of PI exposure at event (months)") +
+  ylab("Age at event") +
+  ggtitle("St. Pierre - CVD")
+
+p_cvd2 <- ggplot(data=pierre_cvd, aes(x=DURATION_NRTI_MONTHS_AT_EVENT, y=AGE_AT_EVENT, colour= factor(GENDER))) +
+  geom_point() + labs(colour = "Gender") + 
+  xlab("Duration of NRTI exposure at event (months)") +
+  ylab("Age at event")
+
+p_cvd3 <- ggplot(data=pierre_cvd, aes(x=DURATION_NNRTI_MONTHS_AT_EVENT, y=AGE_AT_EVENT, colour= factor(GENDER))) +
+  geom_point() + labs(colour = "Gender") + 
+  xlab("Duration of NNRTI exposure at event (months)") +
+  ylab("Age at event")
+
+grid.arrange(p_cvd1, p_cvd2, p_cvd3)
+
+
+#####
+#liege drug data
+liege_artcodes <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/ART_drug_codes.csv', header = T, sep= ';', na.strings=c(""))
+liege_art <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_ART_2.csv', header = T, na.strings=c(""))
+names(liege_artcodes)[1] <- "ART_ID"
+names(liege_artcodes)[2] <- "art_name"
+
+liege_art_merge <- merge(liege_artcodes, liege_art, by = "ART_ID", all.x=TRUE, all.y=TRUE)
+liege_art_count <- count(liege_art_merge, vars = 'art_name')
+liege_art_count$drug_class <- vector(mode='character', length=nrow(liege_art_count))
+
+#only include drugs which appear in liege_art_count
+liege_art_count$drug_class[liege_art_count$art_name %in% c('Invirase', 'Norvir', 'Prezista', 'Reyataz', 
+                                                             'Rezolsta', 'Telzir', 'Tivicay', 'PI unspecified',
+                                                           'Saquinavir (gel, not specified)', 'Saquinavir hard gel (INVIRASE)',
+                                                           'Saquinavir soft gel (FORTOVASE)', 'Tipranavir (Aptivus)',
+                                                           'Ritonavir low dose (NORVIR)', 'Ritonavir high dose (NORVIR)',
+                                                           'Ritonavir (NORVIR)', 'Nelfinavir (VIRACEPT)', 'Mozenavir (DMP-450)',
+                                                           'Indinavir (CRIXIVAN)', 'Darunavir (TMC-114, Prezista)', 
+                                                           'Atazanavir (Reyataz)', 'Amprenavir (AGENERASE)')] <- 'PI'
+
+liege_art_count$drug_class[liege_art_count$art_name %in% c('Edurant' , 'Intelence', 'Stocrin',
+                                                             'Viramune', 'Rilpivirine (TMC-278)', 
+                                                           'NNRTI unspecified', 'Nevirapine (VIRAMUN)',
+                                                           'Etravirine (TMC 125)', 'Efavirenz (DMP-266) (STOCRIN, SUSTIVA)', 
+                                                           'Delavirdine (U-90152) (RESCRIPTOR)', 'Capravirine')] <- 'NNRTI'
+
+
+liege_art_count$drug_class[liege_art_count$art_name %in% c('Emtriva', 'Epivir', 'Kivexa', 'Retrovir', 'Videx',
+                                                             'Videz', 'Viread', 'Zerit', 'Ziagen', 
+                                                           'Tenofovir (VIREAD)', 'Zidovudine (AZT, RETROVIR)', 
+                                                           'Zalcitabine (ddC) (HIVID)', 'Stavudine (d4T) (ZERIT)', 
+                                                           'Reverset', 'NRTI unspecified', 
+                                                           'Lamivudine (3TC, EPIVIR)', 'Entecavir', 
+                                                           'Emtricitabine', 'Didanosine (ddI) (VIDEX)', 
+                                                           'Amdoxovir (DADP)', 'Alovudine', 
+                                                           'Abacavir (1592U89) (ZIAGEN)')] <- 'NRTI'
+
+
+liege_art_count$drug_class[liege_art_count$art_name %in% c('Atripla', 'Combivir', 'Eviplera',
+                                                             'Kaletra', 'Stribild', 'Triumeq',
+                                                             'Trizivir', 'Truvada', 
+                                                           'Lopinavir/Ritonavir (Kaletra). Former code: J05AE06',
+                                                           'Truvada (Tenofovir/Emtricabine)', 'Trizivir (Zidovudine/Lamivudine/Abacavir)',
+                                                           'Trizivir (Zidovudine/Lamivudine/Abacavir)', 'Triomune (Stavudine/Lamivudine/Nevirapine)',
+                                                           'Stribild (Emtricitabine/Tenofovir/Elvitegravir/Cobicistat)',
+                                                           'Kivexa (Lamivudine/Abacavir)', 'Kaletra/Aluvia (Lopinavir/Ritonavir)',
+                                                           'Fos-amprenavir (Telzir, Lexiva)', 'Eviplera/Complera (Emtricitabine/Tenofovir/Rilpivirine)',
+                                                           'Douvir-N (Zidovudine/Lamivudine/Nevirapine)', 'Combivir (Zidovudine/Lamivudine)', 
+                                                           'Atripla (Emtricitabine/Tenofovir/Efavirenz)')] <- 'comb'
+
+liege_art_count$drug_class[liege_art_count$art_name %in% c('Celsentri', 'Maraviroc (Pfizer)')] <- 'Entry_inhib'
+liege_art_count$drug_class[liege_art_count$art_name %in% c('Fuzeon', 'Enfuvirtide (Fuzeon, T-20)')] <- 'Fusion_inhib'
+liege_art_count$drug_class[liege_art_count$art_name %in% c('Isentress', 'Raltegravir (Merck)', 'Elvitegravir', 'Dolutegravir')] <- 'Integrase_inhib'
+liege_art_count$drug_class[liege_art_count$art_name %in% c('Vicriviroc (Schering)', 'Telbivudine',
+                                                           'Loviride', 'Participant in Blinded Trial', 
+                                                           'Lodenosine (trialdrug)', 'Hydroxyurea/Hydroxycarbamid (Litalir)',
+                                                           'Fozivudine tidoxi', 'Emivirine (MKC442)', 'DPC 961',
+                                                           'DPC 083', 'Cobicistat', 'Beviramat', 
+                                                           'ART unspecified', 'Adefovir (PREVEON)')] <- 'Other'
+
+liege_art_count$drug_class <- factor(liege_art_count$drug_class)
+
+dropme <- subset(liege_art_count, drug_class != 'Entry_inhib')
+dropme2 <- subset(dropme, drug_class != 'Integrase_inhib')
+dropme3 <- subset(dropme2, drug_class != 'Other')
+dropme4 <- subset(dropme3, drug_class != 'Fusion_inhib')
+dropme5 <- subset(dropme4, drug_class != '')
+
+liege_art_count <- droplevels(dropme5)
+
+#library("dplyr")
+
+liege_art_count = liege_art_count %>% group_by(drug_class) %>%
+  mutate(cum.freq = cumsum(freq) - 0.5*freq)
+
+## Create separate palette for each drug class
+
+# Count the number of colors we'll need for each bar
+ncol = table(liege_art_count$drug_class)
+
+# Make the palettes
+pal = mapply(function(x,y) brewer.pal(x,y), ncol, c("PRGn","RdGy","BrBG","Dark2"))
+#pal[[2]] = pal[[2]][1:2]  # We only need 2 colors but brewer.pal creates 3 minimum
+pal = unname(unlist(pal)) # Combine palettes into single vector of colors
+
+liege_art_names <- ggplot(data = liege_art_count, aes(x=drug_class, y=freq, fill=art_name) ) + 
+  geom_bar(stat="identity", colour="black", lwd=0.2) +
+  geom_text(aes(label=paste0(art_name,": ", freq), y=cum.freq, size=freq), colour="grey20", fontface="bold") +
+  xlab("Drug class") + ylab("Number of patients") + 
+  ggtitle("Liege ART drug counts") +
+  scale_fill_manual(values=pal) +
+  guides(fill=FALSE)
+
+#########################################################
+#mortality rates
+
+#pierre_not_LTFU_all
+#Liege_not_LTFU
+
+#multiply by 1000 for mortality rate
+mortality_tab_liege <- as.data.frame((table(liege_death$age_binned)/table(Liege_not_LTFU$age_binned))*1000)
+mortality_tab_pierre <- as.data.frame((table(pierre_death$age_binned)/table(pierre_not_LTFU_all$age_binned))*1000)
+
+mortality_tabs <- merge(mortality_tab_liege, mortality_tab_pierre, by = "Var1", all = TRUE)
+colnames(mortality_tabs)[1:3] <- c("Age", "Liege", "St. Pierre")
+
+mortality_tabs_long <- melt(mortality_tabs, id="Age")  # convert to long format
+names(mortality_tabs_long)[2] <- "Cohort"
+
+ggplot(data=mortality_tabs_long,
+       aes(x=Age, y=value, group = Cohort, colour=Cohort)) +
+  geom_line(size=1.5) + ylab("Mortality rate (per 1,000)") + ggtitle("Age-specific mortality rates per 1,000 (crude)")
