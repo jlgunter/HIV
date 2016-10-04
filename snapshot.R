@@ -23,42 +23,42 @@ library(car)
 library(ggplot2)
 
 ####################### Read in files ----------------------
-liege_CD4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_3.csv', header = T, na.strings=c(""))
-liege_CD4_percent <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_PERCENT_3.csv', header = T, na.strings=c(""))
-liege_death <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_DEATH_3.csv', header = T, na.strings=c(""))
-liege_BAS <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_BAS_3.csv', header = T, na.strings=c(""), stringsAsFactors = FALSE)
-liege_CEP <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CEP_3.csv', header = T, na.strings=c(""))
-liege_artcodes <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/ART_standardization.csv', header = T, na.strings=c(""))
-liege_art <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_ART_3.csv', header = T, na.strings=c(""))
-liege_VL <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_RNA_3.csv', header = T, na.strings=c(""))
-liege_egfr <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_EGFR_3.csv', header = T, na.strings=c(""))
-liege_hcv_total <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_LAB_VIRO_3.csv', header = T, na.strings=c(""))
+liege_CD4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_3.csv', header = T, na.strings=c(""))
+liege_CD4_percent <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_PERCENT_3.csv', header = T, na.strings=c(""))
+liege_death <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_DEATH_3.csv', header = T, na.strings=c(""))
+liege_BAS <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_BAS_3.csv', header = T, na.strings=c(""), stringsAsFactors = FALSE)
+liege_CEP <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CEP_3.csv', header = T, na.strings=c(""))
+liege_artcodes <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/ART_standardization.csv', header = T, na.strings=c(""))
+liege_art <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_ART_3.csv', header = T, na.strings=c(""))
+liege_VL <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_RNA_3.csv', header = T, na.strings=c(""))
+liege_egfr <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_EGFR_3.csv', header = T, na.strings=c(""))
+liege_hcv_total <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_LAB_VIRO_3.csv', header = T, na.strings=c(""))
 
 
-pierre_px <- read.csv2('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/St Pierre/PATIENTS.csv',
+pierre_px <- read.csv2('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/St Pierre/PATIENTS.csv',
                           header = TRUE, quote = "\"", dec = ",", na.strings=c(""))
 
-pierre_events <- read.csv2('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/St Pierre/EVENTS.csv',
+pierre_events <- read.csv2('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/St Pierre/EVENTS.csv',
                               header = TRUE, quote = "\"", dec = ",", na.strings=c(""))
 
-erasme_base <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_base.csv', header = T, na.strings=c(""))
-erasme_ART <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_ART.csv', header = T, na.strings=c(""))
+erasme_base <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_base.csv', header = T, na.strings=c(""))
+erasme_ART <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_ART.csv', header = T, na.strings=c(""))
 
-erasme_cd4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_CD4.csv', header = T, na.strings=c(""))
+erasme_cd4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_CD4.csv', header = T, na.strings=c(""))
 
 #aggregate the different CM dataframes
-erasme_cancer <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_cancer.csv', header = T, na.strings=c(""))
-erasme_cvd <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_cvd.csv', header = T, na.strings=c(""))
-erasme_diabetes <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_diabetes.csv', header = T, na.strings=c(""))
-erasme_hta <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_hta.csv', header = T, na.strings=c(""))
-erasme_liver <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_liver.csv', header = T, na.strings=c(""))
-erasme_renal <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_renal.csv', header = T, na.strings=c(""))
-erasme_bmi <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_bmi.csv', header = T, na.strings=c(""), sep=',')
-erasme_new <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_new_data.csv', header = T, na.strings=c(""), sep=',')
-erasme_nadir <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Erasme/Erasme_nadircd4.csv', header = T, na.strings=c(""), sep=',')
+erasme_cancer <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_cancer.csv', header = T, na.strings=c(""))
+erasme_cvd <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_cvd.csv', header = T, na.strings=c(""))
+erasme_diabetes <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_diabetes.csv', header = T, na.strings=c(""))
+erasme_hta <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_hta.csv', header = T, na.strings=c(""))
+erasme_liver <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_liver.csv', header = T, na.strings=c(""))
+erasme_renal <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_renal.csv', header = T, na.strings=c(""))
+erasme_bmi <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_bmi.csv', header = T, na.strings=c(""), sep=',')
+erasme_new <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_new_data.csv', header = T, na.strings=c(""), sep=',')
+erasme_nadir <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_nadircd4.csv', header = T, na.strings=c(""), sep=',')
 
-ghent_px1 <-read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Ghent/Ghent_new_data.csv', header = T, na.strings=c("UNK"))
-ghent_px2 <-read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Ghent/Ghent_new_data2.csv', header = T, na.strings=c("UNK"))
+ghent_px1 <-read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Ghent/Ghent_new_data.csv', header = T, na.strings=c("UNK"))
+ghent_px2 <-read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Ghent/Ghent_new_data2.csv', header = T, na.strings=c("UNK"))
 
 
 ##### Standard ID names --------
@@ -266,6 +266,9 @@ liege_master_no_dups <- liege_master[!duplicated(liege_master$PATIENT_ID)]
 
 #living, not LTFU px - Liege
 liege_not_LTFU <- subset(liege_master_no_dups, STATUS == "Follow up")
+liege_FU_all <- subset(liege_master_no_dups, STATUS != "Contact lost")
+liege_FU_all <- subset(liege_FU_all, STATUS != "Transferred")
+
 liege_not_LTFU <- binning_ages(liege_not_LTFU)
 mean(liege_not_LTFU$age)
 median(liege_not_LTFU$age)
@@ -486,6 +489,7 @@ pierre_alive <- subset(pierre_px_recent, DEATH == "0")
 
 pierre_LTFU <- subset(pierre_alive, pierre_alive$DTE_END_STUDY < "2014-05-31")
 pierre_not_LTFU <- subset(pierre_alive, pierre_alive$DTE_END_STUDY > "2014-05-31")
+pierre_FU_all <- subset(pierre_px_recent, pierre_px_recent$DTE_END_STUDY > "2014-05-31")
 
 mean(pierre_LTFU$age, na.rm=TRUE)
 mean(pierre_not_LTFU$age, na.rm = TRUE)
@@ -841,6 +845,7 @@ erasme_master <- within(erasme_master, Country_of_origin[Country_of_origin == 'C
 
 erasme_LTFU <- subset(erasme_master, status == "LTFU")
 erasme_not_LTFU <- subset(erasme_master, status == "Follow up")
+erasme_FU_all <- subset(erasme_master, status != "LTFU")
 
 erasme_not_LTFU_cd4 <- comb_F(erasme_not_LTFU, erasme_cd4)
 mean(erasme_not_LTFU_cd4$last.cd4_value, na.rm=TRUE)
@@ -1082,6 +1087,7 @@ ghent_px_master$REGION_OF_ORIGIN[ghent_px_master$REGION_OF_ORIGIN == 99] <- "Oth
 
 ghent_LTFU <- subset(ghent_px_master, status == "LTFU")
 ghent_not_LTFU <- subset(ghent_px_master, status == "Follow up")
+ghent_FU_all <- subset(ghent_px_master, status != "LTFU")
 
 mean(ghent_LTFU$AGE, na.rm=TRUE)
 mean(ghent_not_LTFU$AGE, na.rm=TRUE)
@@ -1159,128 +1165,355 @@ liege_dead <- subset(liege_master, STATUS == "Death")
 pierre_dead <- subset(pierre_px_recent, DEATH == "1")
 
 pierre_dead <- binning_ages(pierre_dead)
-#erasme_dead$age <- as.numeric(erasme_dead$age)
 erasme_dead <- binning_ages(erasme_dead)
 ghent_dead <- binning_ages(ghent_dead)
 
+###calculate person years
+#erasme
+erasme_dead$Seroconversion.date.or.first.contact.with.AIDS.center.if.seroconversion.date.unknown <- as.Date(erasme_dead$Seroconversion.date.or.first.contact.with.AIDS.center.if.seroconversion.date.unknown, format = "%d-%m-%Y")
+names(erasme_dead)[2] <- "DTE_START_STUDY"
+erasme_dead_2014 <- subset(erasme_dead, DEATH_Date > "2014-05-31")
+
+liege_dead$DEATH_DATE <- as.Date(liege_dead$DEATH_DATE, format = "%m/%d/%Y")
+liege_dead_2014 <- subset(liege_dead, DEATH_DATE > "2014-05-31")
+
+pierre_dead$DTE_START_STUDY <- as.Date(pierre_dead$DTE_START_STUDY, format = "%m/%d/%Y")
+pierre_dead_2014 <- subset(pierre_dead, DTE_END_STUDY > "2014-05-31")
+
+names(ghent_dead)[7] <- "DTE_START_STUDY"
+ghent_dead$DTE_START_STUDY <- as.Date(as.character(ghent_dead$DTE_START_STUDY, format = "%m/%d/%Y"))
+ghent_dead_2014 <- subset(ghent_dead, DATE_DEATH > "2014-05-31")
+ghent_dead_2014 <- as.data.frame(ghent_dead_2014)
+
+
+#ghent_px_master
+#make new df that combined dead with not LTFU
+
+erasme_FU_all <- binning_ages(erasme_FU_all)
+ghent_FU_all <- binning_ages(ghent_FU_all)
+liege_FU_all <- binning_ages(liege_FU_all)
+pierre_FU_all <- binning_ages(pierre_FU_all)
+
+#stack overflow
+liege_dead_2014$person_months <- round(ifelse(liege_dead_2014$FIRST_VIS_DATE<as.Date("2014-05-31"), 
+                                              liege_dead_2014$DEATH_DATE-as.Date("2014-05-31"), liege_dead_2014$DEATH_DATE-liege_dead_2014$FIRST_VIS_DATE)/30, 2)
+incidence_death_liege <- (nrow(liege_dead_2014)/sum(liege_dead_2014$person_months))*100
+
+pierre_dead_2014$person_months <- round(ifelse(pierre_dead_2014$DTE_START_STUDY<as.Date("2014-05-31"), 
+                                               pierre_dead_2014$DTE_END_STUDY-as.Date("2014-05-31"), pierre_dead_2014$DTE_END_STUDY-pierre_dead_2014$DTE_START_STUDY)/30, 2)
+incidence_death_pierre <- (nrow(pierre_dead_2014)/sum(pierre_dead_2014$person_months, na.rm=TRUE))*100
+
+
+erasme_dead_2014$person_months <- round(ifelse(erasme_dead_2014$DTE_START_STUDY<as.Date("2014-05-31"), 
+                                               erasme_dead_2014$DEATH_Date-as.Date("2014-05-31"), erasme_dead_2014$DEATH_Date-erasme_dead_2014$DTE_START_STUDY)/30, 2)
+incidence_death_erasme <- (nrow(erasme_dead_2014)/sum(erasme_dead_2014$person_months, na.rm=TRUE))*100
+
+
+ghent_dead_2014$person_months <- round(ifelse(ghent_dead_2014$DTE_START_STUDY<as.Date("2014-05-31"), 
+                                              ghent_dead_2014$DATE_DEATH-as.Date("2014-05-31"), ghent_dead_2014$DATE_DEATH-ghent_dead_2014$DTE_START_STUDY)/30, 2)
+incidence_death_ghent <- (nrow(ghent_dead_2014)/sum(ghent_dead_2014$person_months, na.rm=TRUE))*100
+
+#########
 
 
 tab <- function(df) {
-  base <- as.data.frame(table(df$age_binned))
+  base <- as.data.frame(table(age_binned = df$age_binned))
   base
 }
 
 
-pierre_tab <- tab(pierre_px_recent)
-pierre_tab_death <- tab(pierre_dead)
-liege_tab <- tab(liege_master)
-liege_tab_death <- tab(liege_dead)
-erasme_tab <- tab(erasme_master)
-erasme_tab_death <- tab(erasme_dead)
-ghent_tab <- tab(ghent_px_master)
-ghent_tab_death <- tab(ghent_dead)
+pierre_tab <- tab(pierre_FU_all)
+pierre_tab_death <- tab(pierre_dead_2014)
+liege_tab <- tab(liege_FU_all)
+liege_tab_death <- tab(liege_dead_2014)
+erasme_tab <- tab(erasme_FU_all)
+erasme_tab_death <- tab(erasme_dead_2014)
+ghent_tab <- tab(ghent_FU_all)
+ghent_tab_death <- tab(ghent_dead_2014)
 
+# pierre_pm <- aggregate(person_months~age_binned, pierre_dead_2014, sum)
+# pierre_tab_death_pm <- merge(pierre_pm, pierre_tab_death, by="age_binned", all=TRUE)
+# 
+# liege_pm <- aggregate(person_months~age_binned, liege_dead_2014, sum)
+# liege_tab_death_pm <- merge(liege_pm, liege_tab_death, by="age_binned", all=TRUE)
+# 
+# erasme_pm <- aggregate(person_months~age_binned, erasme_dead_2014, sum)
+# erasme_tab_death_pm <- merge(erasme_pm, erasme_tab_death, by="age_binned", all=TRUE)
+# 
+# ghent_pm <- aggregate(person_months~age_binned, ghent_dead_2014, sum)
+# ghent_tab_death_pm <- merge(ghent_pm, ghent_tab_death, by="age_binned", all=TRUE)
+# 
 
-for (i in liege_tab_death) {
-  liege_tab_death[3] <- i/sum(liege_tab_death$Freq)
-  liege_tab_death
-}
+# for (i in liege_tab_death) {
+#   liege_tab_death[3] <- i/sum(liege_tab_death$Freq)
+#   liege_tab_death
+# }
+# 
+# for (i in pierre_tab_death) {
+#   pierre_tab_death[3] <- i/sum(pierre_tab_death$Freq)
+#   pierre_tab_death
+# }
+# 
+# for (i in erasme_tab_death) {
+#   erasme_tab_death[3] <- i/(sum(erasme_tab_death$Freq))
+#   erasme_tab_death
+# }
+# 
+# for (i in ghent_tab_death) {
+#   ghent_tab_death[3] <- i/(sum(ghent_tab_death$Freq))
+#   ghent_tab_death
+# }
+# 
+# for (i in liege_tab) {
+#   liege_tab[3] <- i/sum(liege_tab$Freq)
+#   liege_tab
+# }
+# 
+# for (i in pierre_tab) {
+#   pierre_tab[3] <- i/sum(pierre_tab$Freq)
+#   pierre_tab
+# }
+# 
+# for (i in erasme_tab) {
+#   erasme_tab[3] <- i/(sum(erasme_tab$Freq))
+#   erasme_tab
+# }
+# 
+# for (i in ghent_tab) {
+#   ghent_tab[3] <- i/(sum(ghent_tab$Freq))
+#   ghent_tab
+# }
 
-for (i in pierre_tab_death) {
-  pierre_tab_death[3] <- i/sum(pierre_tab_death$Freq)
-  pierre_tab_death
-}
+avg_pops_df <- as.data.frame(cbind(liege_tab[1], liege_tab$Freq, pierre_tab$Freq, 
+                                   erasme_tab$Freq, ghent_tab$Freq))
 
-for (i in erasme_tab_death) {
-  erasme_tab_death[3] <- i/(sum(erasme_tab_death$Freq))
-  erasme_tab_death
-}
+avg_pm_df <- as.data.frame(cbind(liege_tab[1], liege_tab_death_pm$person_months, pierre_tab_death_pm$person_months,
+                                 erasme_tab_death_pm$person_months, ghent_tab_death_pm$person_months))
 
-for (i in ghent_tab_death) {
-  ghent_tab_death[3] <- i/(sum(ghent_tab_death$Freq))
-  ghent_tab_death
-}
-
-for (i in liege_tab) {
-  liege_tab[3] <- i/sum(liege_tab$Freq)
-  liege_tab
-}
-
-for (i in pierre_tab) {
-  pierre_tab[3] <- i/sum(pierre_tab$Freq)
-  pierre_tab
-}
-
-for (i in erasme_tab) {
-  erasme_tab[3] <- i/(sum(erasme_tab$Freq))
-  erasme_tab
-}
-
-for (i in ghent_tab) {
-  ghent_tab[3] <- i/(sum(ghent_tab$Freq))
-  ghent_tab
-}
-
-avg_pops_df <- as.data.frame(cbind(liege_tab[1], liege_tab$V3, pierre_tab$V3, 
-                                   erasme_tab$V3, ghent_tab$V3))
-
-avg_deaths_df <- as.data.frame(cbind(liege_tab[1], liege_tab_death$V3, pierre_tab_death$V3, 
-                                     erasme_tab_death$V3, ghent_tab_death$V3))
+total_deaths_df <- as.data.frame(cbind(liege_tab[1], liege_tab_death$Freq, pierre_tab_death$Freq, 
+                                     erasme_tab_death$Freq, ghent_tab_death$Freq))
 
 colnames(avg_pops_df)[c(1:5)] <- (c("Age_groups", "Liege", "St. Pierre", "Erasme", "Ghent"))
-colnames(avg_deaths_df)[c(1:5)] <- (c("Age_groups", "Liege", "St. Pierre", "Erasme", "Ghent"))
+colnames(total_deaths_df)[c(1:5)] <- (c("Age_groups", "Liege", "Pierre", "Erasme", "Ghent"))
+colnames(avg_pm_df)[c(1:5)] <- (c("Age_groups", "Liege", "St. Pierre", "Erasme", "Ghent"))
+
 
 avg_pops_df$avg <- (rowMeans(avg_pops_df[,-1]))
-avg_deaths_df$avg <- (rowMeans(avg_deaths_df[,-1]))
+total_deaths_df$avg <- (rowMeans(total_deaths_df[2:5]))
+total_deaths_df$sum <- rowSums(total_deaths_df[2:5])
+avg_pops_df$sum <- rowSums(avg_pops_df[2:5])
+avg_pm_df$sum <- rowSums(avg_pm_df[2:5], na.rm=TRUE)
 
+#add a percentage after the sum column out of total in total_deaths_df
+total_deaths_df$proportion <- (total_deaths_df$sum/(sum(total_deaths_df$sum)))*100
+total_deaths_df$proportion_liege <- (total_deaths_df$Liege/(sum(total_deaths_df$Liege)))*100
+total_deaths_df$proportion_pierre <- (total_deaths_df$Pierre/(sum(total_deaths_df$Pierre)))*100
+total_deaths_df$proportion_ghent <- (total_deaths_df$Ghent/(sum(total_deaths_df$Ghent)))*100
+total_deaths_df$proportion_erasme <- (total_deaths_df$Erasme/(sum(total_deaths_df$Erasme)))*100
+
+#copied code from below
+
+# prop_tabs <- as.data.frame(cbind(total_deaths_df[1], total_deaths_df$proportion_liege,
+#                                        total_deaths_df$proportion_pierre, 
+#                                        total_deaths_df$proportion_erasme, 
+#                                        total_deaths_df$proportion_ghent))
+#                            
+# colnames(prop_tabs)[c(1:5)] <- c("Age", "Liege", "St. Pierre", "Erasme", "Ghent")
+# 
+# prop_tabs_long <- melt(prop_tabs, id="Age")  # convert to long format
+# names(prop_tabs_long)[2] <- "Cohort"
+
+# prop_mortality <- ggplot(data=prop_tabs_long,
+#                                  aes(x=Age, y=value, group = Cohort, colour=Cohort)) +
+#   geom_line(size=1.5) + ylab("Percentage") + ggtitle("Proportional mortality rates by cohort")
 
 
 #make a graph of proportions of deaths
-proportion_mortality <- ggplot(data=avg_deaths_df,aes(x=Age_groups, y=avg, group=1)) +
+proportion_mortality <- ggplot(data=total_deaths_df,aes(x=Age_groups, y=proportion, group=1)) +
   geom_line(size=1.5) + xlab("Age groups") +
   ylab("Percentage of total deaths by age group") +
   ggtitle("Proportion of deaths by age group - all cohorts") +
   theme(plot.title = element_text(size = 20))
 
+
+######### crudge rates
 #make crude and adjusted rates
-liege_tab$crude <- (liege_tab$V3*liege_tab_death$Freq)
-pierre_tab$crude <- (pierre_tab$V3*pierre_tab_death$Freq)
-erasme_tab$crude <- (erasme_tab$V3*erasme_tab_death$Freq)
-ghent_tab$crude <- (ghent_tab$V3*ghent_tab_death$Freq)
+liege_tab$crude <- (liege_tab_death$Freq/liege_tab$Freq)*1000
+pierre_tab$crude <- (pierre_tab_death$Freq/pierre_tab$Freq)*1000
+erasme_tab$crude <- (erasme_tab_death$Freq/erasme_tab$Freq)*1000
+ghent_tab$crude <- (ghent_tab_death$Freq/ghent_tab$Freq)*1000
 
-liege_tab$adj <- (avg_pops_df$avg*liege_tab_death$Freq)
-pierre_tab$adj <- (avg_pops_df$avg*pierre_tab_death$Freq)
-erasme_tab$adj <- (avg_pops_df$avg*erasme_tab_death$Freq)
-ghent_tab$adj <- (avg_pops_df$avg*ghent_tab_death$Freq)
+liege_tab$adj <- (liege_tab_death$Freq/avg_pops_df$avg)*1000
+pierre_tab$adj <- (pierre_tab_death$Freq/avg_pops_df$avg)*1000
+erasme_tab$adj <- (erasme_tab_death$Freq/avg_pops_df$avg)*1000
+ghent_tab$adj <- (ghent_tab_death$Freq/avg_pops_df$avg)*1000
+
+total_deaths_df$total <- (total_deaths_df$avg/avg_pops_df$avg)*1000
+
+#71-75 is an outlier. It's one person who was followed for less than a month
+#remove it
+#avg_pm_df$pm <- (total_deaths_df$sum/avg_pm_df$sum)*100
+#avg_pm_df[15, 7] = 0
 
 
 
-mortal_tabs_crude <- as.data.frame(cbind(liege_tab[1], liege_tab$crude, 
+#mortal_tabs_crude <- as.data.frame(cbind(liege_tab[1], liege_tab$crude, 
                                          pierre_tab$crude, erasme_tab$crude, ghent_tab$crude))
-colnames(mortal_tabs_crude)[c(1:5)] <- c("Age", "Liege", "St. Pierre", "Erasme", "Ghent")
+#colnames(mortal_tabs_crude)[c(1:5)] <- c("Age", "Liege", "St. Pierre", "Erasme", "Ghent")
+
+# 
+# mortal_tabs_crude_long <- melt(mortal_tabs_crude, id="Age")  # convert to long format
+# names(mortal_tabs_crude_long)[2] <- "Cohort"
+# 
+# crude_mortality <- ggplot(data=mortal_tabs_crude_long,
+#                           aes(x=Age, y=value, group = Cohort, colour=Cohort)) +
+#   geom_line(size=1.5) + ylab("Mortality rate") + ggtitle("Age-adjusted crude mortality rates by cohort")
 
 
-mortal_tabs_crude_long <- melt(mortal_tabs_crude, id="Age")  # convert to long format
-names(mortal_tabs_crude_long)[2] <- "Cohort"
-
-crude_mortality <- ggplot(data=mortal_tabs_crude_long,
-                          aes(x=Age, y=value, group = Cohort, colour=Cohort)) +
-  geom_line(size=1.5) + ylab("Mortality rate") + ggtitle("Age-adjusted crude mortality rates by cohort")
-
-
-mortal_tabs <- as.data.frame(cbind(liege_tab[1], liege_tab$adj, pierre_tab$adj, erasme_tab$adj, ghent_tab$adj))
-colnames(mortal_tabs)[c(1:5)] <- c("Age", "Liege", "St. Pierre", "Erasme", "Ghent")
+mortal_tabs <- as.data.frame(cbind(liege_tab[1], liege_tab$adj, pierre_tab$adj, erasme_tab$adj, ghent_tab$adj, total_deaths_df$total))
+colnames(mortal_tabs)[c(1:6)] <- c("Age", "Liege", "St. Pierre", "Erasme", "Ghent", "All")
 
 mortal_tabs_long <- melt(mortal_tabs, id="Age")  # convert to long format
 names(mortal_tabs_long)[2] <- "Cohort"
 
 standardized_mortality <- ggplot(data=mortal_tabs_long,
        aes(x=Age, y=value, group = Cohort, colour=Cohort)) +
-  geom_line(size=1.5) + ylab("Mortality rate") + ggtitle("Age-adjusted standardized mortality rates by cohort")
+  geom_line(size=1.5) + ylab("Mortality rate per 1000") + ggtitle("Age-adjusted standardized mortality rates by cohort")
+
+###
+
+# pm_mortality <- ggplot(data=avg_pm_df,
+#                                  aes(x=Age_groups, y=pm, group=1)) +
+#   geom_line(size=1.5) + ylab("Mortality rate per 100 person-months") + ggtitle("Mortality by age group")
+
+#  
+# combined_mortality <- ggplot(data=total_deaths_df,
+#                                  aes(x=Age_groups, y=total, group = 1)) +
+#   geom_line(size=1.5) + ylab("Mortality rate per 1000") + ggtitle("Age-adjusted standardized mortality rates by cohort")
 
 
-grid.arrange(crude_mortality, standardized_mortality)
 
+################ gendered mortality ----------------
+
+### subset the dead_2014 data frames to m or f
+#need to make this look better later
+
+pierre_FU_female <- subset(pierre_FU_all, GENDER == "Female")
+pierre_FU_male <- subset(pierre_FU_all, GENDER == "Male")
+pierre_dead_2014_female <- subset(pierre_dead_2014, GENDER == "Female")
+pierre_dead_2014_male <- subset(pierre_dead_2014, GENDER == "Male")
+
+liege_FU_female <- subset(liege_FU_all, GENDER == "Female")
+liege_FU_male <- subset(liege_FU_all, GENDER == "Male")
+liege_dead_2014_female <- subset(liege_dead_2014, GENDER == "Female")
+liege_dead_2014_male <- subset(liege_dead_2014, GENDER == "Male")
+
+erasme_FU_female <- subset(erasme_FU_all, GENDER == "Female")
+erasme_FU_male <- subset(erasme_FU_all, GENDER == "Male")
+erasme_dead_2014_female <- subset(erasme_dead_2014, GENDER == "Female")
+erasme_dead_2014_male <- subset(erasme_dead_2014, GENDER == "Male")
+
+ghent_FU_female <- subset(ghent_FU_all, CURRENT.LEGAL.SEX == "Female")
+ghent_FU_male <- subset(ghent_FU_all, CURRENT.LEGAL.SEX == "Male")
+ghent_dead_2014_female <- subset(ghent_dead_2014, CURRENT.LEGAL.SEX == "Female")
+ghent_dead_2014_male <- subset(ghent_dead_2014, CURRENT.LEGAL.SEX == "Male")
+
+pierre_tab_female <- tab(pierre_FU_female)
+pierre_tab_male <- tab(pierre_FU_male)
+pierre_tab_death_female <- tab(pierre_dead_2014_female)
+pierre_tab_death_male <- tab(pierre_dead_2014_male)
+
+liege_tab_female <- tab(liege_FU_female)
+liege_tab_male <- tab(liege_FU_male)
+liege_tab_death_female <- tab(liege_dead_2014_female)
+liege_tab_death_male <- tab(liege_dead_2014_male)
+
+erasme_tab_female <- tab(erasme_FU_female)
+erasme_tab_male <- tab(erasme_FU_male)
+erasme_tab_death_female <- tab(erasme_dead_2014_female)
+erasme_tab_death_male <- tab(erasme_dead_2014_male)
+
+ghent_tab_female <- tab(ghent_FU_female)
+ghent_tab_male <- tab(ghent_FU_male)
+ghent_tab_death_female <- tab(ghent_dead_2014_female)
+ghent_tab_death_male <- tab(ghent_dead_2014_male)
+
+
+avg_pops_df_female <- as.data.frame(cbind(liege_tab[1], liege_tab_female$Freq, pierre_tab_female$Freq, 
+                                   erasme_tab_female$Freq, ghent_tab_female$Freq))
+
+avg_pops_df_male <- as.data.frame(cbind(liege_tab[1], liege_tab_male$Freq, pierre_tab_male$Freq, 
+                                          erasme_tab_male$Freq, ghent_tab_male$Freq))
+
+total_deaths_df_female <- as.data.frame(cbind(liege_tab[1], liege_tab_death_female$Freq, pierre_tab_death_female$Freq, 
+                                       erasme_tab_death_female$Freq, ghent_tab_death_female$Freq))
+
+total_deaths_df_male <- as.data.frame(cbind(liege_tab[1], liege_tab_death_male$Freq, pierre_tab_death_male$Freq, 
+                                              erasme_tab_death_male$Freq, ghent_tab_death_male$Freq))
+
+colnames(avg_pops_df_female)[c(1:5)] <- (c("Age_groups", "Liege", "St. Pierre", "Erasme", "Ghent"))
+colnames(avg_pops_df_male)[c(1:5)] <- (c("Age_groups", "Liege", "St. Pierre", "Erasme", "Ghent"))
+
+colnames(total_deaths_df_female)[c(1:5)] <- (c("Age_groups", "Liege", "Pierre", "Erasme", "Ghent"))
+colnames(total_deaths_df_male)[c(1:5)] <- (c("Age_groups", "Liege", "Pierre", "Erasme", "Ghent"))
+
+
+avg_pops_df_female$avg <- (rowMeans(avg_pops_df_female[,-1]))
+avg_pops_df_male$avg <- (rowMeans(avg_pops_df_male[,-1]))
+
+avg_pops_df_female$sum <- (rowSums(avg_pops_df_female[2:5]))
+avg_pops_df_male$sum <- (rowSums(avg_pops_df_male[2:5]))
+
+# total_deaths_df_female$avg <- (rowMeans(total_deaths_df_female[2:5]))
+# total_deaths_df_male$avg <- (rowMeans(total_deaths_df_male[2:5]))
+
+total_deaths_df_female$sum <- (rowSums(total_deaths_df_female[2:5]))
+total_deaths_df_male$sum <- (rowSums(total_deaths_df_male[2:5]))
+
+# total_deaths_df_female$total <- (total_deaths_df_female$avg/avg_pops_df_female$avg)*1000
+# total_deaths_df_male$total <- (total_deaths_df_male$avg/avg_pops_df_male$avg)*1000
+
+total_deaths_df_female$crude <- (total_deaths_df_female$sum/avg_pops_df_female$sum)*1000
+total_deaths_df_male$crude <- (total_deaths_df_male$sum/avg_pops_df_male$sum)*1000
+
+#combine the datasets
+
+# total_deaths_df_female <- total_deaths_df_female[, -c(7)]
+# total_deaths_df_male <- total_deaths_df_male[, -c(7)]
+
+names(total_deaths_df_female)[7] <- "Female"
+names(total_deaths_df_male)[7] <- "Male"
+
+combined_MF <- merge(total_deaths_df_female, total_deaths_df_male, by = "Age_groups")
+combined_MF <- combined_MF[, -c(2:6)]
+combined_MF <- combined_MF[, -c(3:7)]
+
+comb_tabs_long <- melt(combined_MF, id="Age_groups")  # convert to long format
+names(comb_tabs_long)[2] <- "Gender"
+
+gender_mortality <- ggplot(data=comb_tabs_long,
+                                 aes(x=Age_groups, y=value, group = Gender, colour=Gender)) +
+  geom_line(size=1.5) + ylab("Mortality rate per 1000") + ggtitle("Age-adjusted crude mortality rates by gender") + 
+  theme(legend.position = "bottom", plot.title = element_text(size = 20))
+
+#using this graph for the poster
+grid.arrange(gender_mortality, proportion_mortality)
+
+
+
+total_deaths_df$sum <- rowSums(total_deaths_df[2:5])
+avg_pops_df$sum <- rowSums(avg_pops_df[2:5])
+
+
+
+
+pierre_tab_death <- tab(pierre_dead_2014)
+liege_tab <- tab(liege_FU_all)
+liege_tab_death <- tab(liege_dead_2014)
+erasme_tab <- tab(erasme_FU_all)
+erasme_tab_death <- tab(erasme_dead_2014)
+ghent_tab <- tab(ghent_FU_all)
+ghent_tab_death <- tab(ghent_dead_2014)
 
 ################ combined mortality graph--------------
 
