@@ -850,6 +850,8 @@ erasme_FU_all <- subset(erasme_master, status != "LTFU")
 erasme_not_LTFU_cd4 <- comb_F(erasme_not_LTFU, erasme_cd4)
 mean(erasme_not_LTFU_cd4$last.cd4_value, na.rm=TRUE)
 
+##### Erasme NICMs --------
+
 erasme_cvd <- erasme_cvd[!duplicated(erasme_cvd$PATIENT_ID),]
 erasme_cvd_total <- comb_F(erasme_cvd, erasme_not_LTFU)
 (nrow(erasme_cvd_total))/(nrow(erasme_not_LTFU))
@@ -1113,6 +1115,7 @@ ghent_hepc_not_LTFU <- comb_F(ghent_hepc, ghent_not_LTFU)
 
 
 ghent_not_LTFU$CVD <- ghent_not_LTFU$MI + ghent_not_LTFU$STROKE + ghent_not_LTFU$ICP
+ghent_CVD_not_LTFU <- subset(ghent_not_LTFU, CVD == 1)
 
 ########## Ghent hyp -------
 names(ghent_events)[2] <- "OUTCOME"
@@ -1328,13 +1331,6 @@ total_deaths_df$proportion_erasme <- (total_deaths_df$Erasme/(sum(total_deaths_d
 #   geom_line(size=1.5) + ylab("Percentage") + ggtitle("Proportional mortality rates by cohort")
 
 
-#make a graph of proportions of deaths
-proportion_mortality <- ggplot(data=total_deaths_df,aes(x=Age_groups, y=proportion, group=1)) +
-  geom_line(size=1.5) + xlab("Age groups") +
-  ylab("Percentage of total deaths by age group") +
-  ggtitle("Proportion of deaths by age group - all cohorts") +
-  theme(plot.title = element_text(size = 20))
-
 
 ######### crudge rates
 #make crude and adjusted rates
@@ -1491,10 +1487,18 @@ combined_MF <- combined_MF[, -c(3:7)]
 comb_tabs_long <- melt(combined_MF, id="Age_groups")  # convert to long format
 names(comb_tabs_long)[2] <- "Gender"
 
-gender_mortality <- ggplot(data=comb_tabs_long,
-                                 aes(x=Age_groups, y=value, group = Gender, colour=Gender)) +
-  geom_line(size=1.5) + ylab("Mortality rate per 1000") + ggtitle("Age-adjusted crude mortality rates by gender") + 
-  theme(legend.position = "bottom", plot.title = element_text(size = 20))
+gender_mortality <- ggplot(data=comb_tabs_long, aes(x=Age_groups, y=value, group = Gender, colour=Gender)) +
+  geom_line(size=1.5) + ylab("Mortality rate per 1000") + 
+  xlab("Age groups") +
+  ggtitle("Age-adjusted crude mortality rates by gender") + 
+  theme(legend.position = "bottom", plot.title = element_text(size = 30, face="bold"))
+
+#make a graph of proportions of deaths
+proportion_mortality <- ggplot(data=total_deaths_df,aes(x=Age_groups, y=proportion, group=1)) +
+  geom_line(size=1.5) + xlab("Age groups") +
+  ylab("Percentage of total deaths") +
+  ggtitle("Proportion of total deaths by age group") +
+  theme(plot.title = element_text(size = 30, face = "bold"))
 
 #using this graph for the poster
 grid.arrange(gender_mortality, proportion_mortality)
@@ -1812,7 +1816,7 @@ liege_box_age <- ggplot(liege_age_df, aes(gender, age, fill=gender)) + geom_boxp
   scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
   scale_y_continuous(breaks=seq(0,95,5), limits = c(10,95)) + 
   theme(legend.position="none", axis.title.x=element_blank(),
-        axis.title.y=element_blank()) + 
+        axis.title.y=element_blank(), plot.title = element_text(size=20)) + 
   ggtitle("Liège")
 
 pierre_box_age <- ggplot(pierre_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
@@ -1820,7 +1824,7 @@ pierre_box_age <- ggplot(pierre_age_df, aes(gender, age, fill=gender)) + geom_bo
   scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
   scale_y_continuous(breaks=seq(0,95,5), limits = c(10,95)) +
   theme(legend.position="none", axis.title.x=element_blank(),
-        axis.title.y=element_blank()) + 
+        axis.title.y=element_blank(), plot.title = element_text(size=20)) + 
   ggtitle("St. Pierre")
 
 erasme_box_age <- ggplot(erasme_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
@@ -1828,7 +1832,7 @@ erasme_box_age <- ggplot(erasme_age_df, aes(gender, age, fill=gender)) + geom_bo
   scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
   scale_y_continuous(breaks=seq(0,95,5), limits = c(10,95)) + 
   theme(legend.position="none", axis.title.x=element_blank(),
-        axis.title.y=element_blank()) + 
+        axis.title.y=element_blank(), plot.title = element_text(size=20)) + 
   ggtitle("Erasme")
 
 ghent_box_age <- ggplot(ghent_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
@@ -1836,7 +1840,7 @@ ghent_box_age <- ggplot(ghent_age_df, aes(gender, age, fill=gender)) + geom_boxp
   scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
   scale_y_continuous(breaks=seq(0,95,5), limits = c(10,95)) + 
   theme(legend.position="none", axis.title.x=element_blank(),
-        axis.title.y=element_blank()) +
+        axis.title.y=element_blank(), plot.title = element_text(size=20)) +
   ggtitle("Ghent")
 
 all_box_age <- ggplot(all_age, aes(gender, age, fill=gender)) + geom_boxplot() +
@@ -1845,7 +1849,7 @@ all_box_age <- ggplot(all_age, aes(gender, age, fill=gender)) + geom_boxplot() +
   scale_y_continuous(breaks=seq(0,95,5), limits = c(10,95)) + 
   theme(legend.position="none", axis.title.x=element_blank(),
         axis.title.y=element_blank(), 
-        plot.title = element_text(size = 25, face = "bold")) + 
+        plot.title = element_text(size = 30, face = "bold")) + 
   ggtitle("Age & Gender Distribution - All centres")
 
 #to make a common legend for all
@@ -1919,57 +1923,19 @@ region_pie <- ggplot(region_all, aes(x=1, y=Freq, fill=Region)) +
   # polar coordinates
   coord_polar(theta='y') +
   # label aesthetics
-  theme(legend.text=element_text(size=15),
+  theme(plot.title = element_text(size=30, face="bold"),
+        legend.text=element_text(size=15),
         legend.title = element_blank(),
         axis.ticks=element_blank(),  # the axis ticks
         axis.title=element_blank(),  # the axis labels
         axis.text.y=element_blank(), # the 0.75, 1.00, 1.25 labels
-        axis.text.x=element_text(color='black')) + 
+        axis.text.x=element_text(color='black', size = 11)) + 
+  ggtitle("Region of origin") + 
   scale_y_continuous(
     breaks=y.breaks,
     labels=region_all$Freq)
 
 
-
-
-
-
-
-###
-
-
-
-uniq_art <- data.frame(PATIENT_ID = unique(erasme_ART$PATIENT_ID))
-uniq_art_merge <- merge(erasme_not_LTFU, uniq_art, by = "PATIENT_ID", all=FALSE)
-
-
-#bring in Pierre CD4
-names(pierre_cd4_cast)[1] <- "PATIENT_ID"
-pierre_cd4_not_LTFU <- merge(pierre_cd4_cast, pierre_not_LTFU, by="PATIENT_ID")
-names(pierre_cd4_not_LTFU)[8] <- "CD4_RECENT"
-  
-names(pierre_trt_cast)[1] <- "PATIENT_ID"
-pierre_all <- merge(pierre_cd4_not_LTFU, pierre_trt_cast, by= "PATIENT_ID")
-
-#percentage of treated patients in pierre
-pierre_trt_yes <- subset(pierre_trt_cast, trt_yes == 1)
-pierre_trt_merge <- merge(pierre_trt_yes, pierre_not_LTFU, by="PATIENT_ID", all=FALSE)
-
-# 43% of Ghent patients unknown - not good enough drug data
-date_unk <- subset(ghent_not_LTFU, START_DATE_ART == "UNK")
-
-uniq_liege <- data.frame(unique(liege_art$PATIENT_ID))
-nrow(uniq_liege)
-names(uniq_liege)[1] <- "PATIENT_ID"
-uniq_liege_merge <- merge(uniq_liege, liege_not_LTFU, by="PATIENT_ID", all=FALSE)
-
-(nrow(uniq_liege_merge))/(nrow(liege_not_LTFU))
-
-
-
-
-
-
-
-
+#########
+#Prevalence of NICMs by age 
 
