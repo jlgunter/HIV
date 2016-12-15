@@ -1,10 +1,4 @@
-######## Notes
-
-###something to consider: When a patient dies, there is also an event for end of follow up.
-#need to check if it's identical to death data
-
-#also, a more nuanced look at what's happening at the events will be necessary.
-
+#cleaned up and editied version of snapshot.R
 
 ##################### Packages -----------
 
@@ -21,6 +15,7 @@ library(RColorBrewer)
 require(gridExtra)
 library(car)
 library(ggplot2)
+library(xlsx)
 
 ####################### Read in files ----------------------
 liege_CD4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_3.csv', header = T, na.strings=c(""))
@@ -32,8 +27,8 @@ liege_artcodes <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Pr
 liege_art <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_ART_3.csv', header = T, na.strings=c(""))
 liege_VL <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_RNA_3.csv', header = T, na.strings=c(""))
 liege_egfr <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_EGFR_3.csv', header = T, na.strings=c(""))
-liege_hcv_total <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_LAB_VIRO_3.csv', header = T, na.strings=c(""))
-
+liege_liver <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_LAB_VIRO_3.csv', header = T, na.strings=c(""))
+liege_hcv <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/HCV_only.csv', header = T, na.strings=c(""))
 
 pierre_px <- read.csv2('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/St Pierre/PATIENTS.csv',
                        header = TRUE, quote = "\"", dec = ",", na.strings=c(""))
@@ -58,7 +53,8 @@ erasme_new <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projec
 erasme_nadir <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_nadircd4.csv', header = T, na.strings=c(""), sep=',')
 
 ghent_px1 <-read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Ghent/Ghent_new_data.csv', header = T, na.strings=c("UNK"))
-ghent_px2 <-read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Ghent/Ghent_new_data2.csv', header = T, na.strings=c("UNK"))
+ghent_px2 <-read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Ghent/Ghent_new_data3.csv', header = T, na.strings=c("UNK"))
+ghent_ICP <-read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Ghent/Ghent_ICP.csv', header = T, na.strings=c("UNK"))
 
 
 ##### Standard ID names --------
@@ -79,7 +75,8 @@ liege_artcodes <- id(liege_artcodes)
 liege_art <- id(liege_art)
 liege_VL <- id(liege_VL)
 liege_egfr <- id(liege_egfr)
-liege_hcv_total <- id(liege_hcv_total)
+liege_liver <- id(liege_liver)
+liege_hcv <- id(liege_hcv)
 
 erasme_nadir <- id(erasme_nadir)
 erasme_cancer <- id(erasme_cancer)
@@ -145,16 +142,23 @@ age_years <- function(first, second) {
 
 today <- Sys.Date()
 
+#get percentages of region of origin
 ethnic_freq <- function(df) {
   site_region <- data.frame(table(df$REGION_OF_ORIGIN))
   site_region$Freq <- (site_region$Freq/sum(site_region$Freq))*100
   site_region
 }
 
+#change NA to 0 and create a variable for polypathology
+varto0 <- function(df) {
+  df[c("dia", "cvd", "ac", "hl", "liver", "lung", "hcv", "ckd", "hyp")][is.na(df[c("dia", "cvd", "ac", "hl", "liver", "lung", "hcv", "ckd", "hyp")])] <- 0
+  df$poly <- df$dia + df$cvd + df$ac + df$hl + df$liver + df$lung + df$hcv + df$ckd
+  df
+  }
 
 #############################################################################################
 #Liege
-###################### Liege - changes to orig. data ------------------
+###################### Liege treatment ------------------
 
 #make dates into as.Date and to change the fake dates to NA
 
@@ -166,14 +170,24 @@ liege_BAS$sys_date <- Sys.Date()
 
 liege_BAS$age <- age_years(liege_BAS$BIRTH_DATE, liege_BAS$sys_date)
 
-#do the same for the number of years on ART
-liege_BAS$years_on_ART <- age_years(liege_BAS$DATE.START.ART, liege_BAS$sys_date)
+#find the number of patients on ART
+liege_BAS$started_art <- ifelse(liege_BAS$DATE.START.ART >= "1911-11-11", 1, 0)
 
-#change the placeholder to NA
-liege_BAS$years_on_ART[liege_BAS$years_on_ART == 104] <- NA
+#didn't work for NA so make those into 0
+liege_BAS$started_art[is.na(liege_BAS$started_art)] <- 0
 
-#make the fake placeholder date into NA
-liege_BAS[liege_BAS == "1911-11-11"] <- NA
+#now make the placeholder date NA so it doesn't throw off the averages in the calcs
+liege_BAS$DATE.START.ART[liege_BAS$DATE.START.ART == "1911-11-11"] <- NA
+liege_BAS$art_duration_weeks <- difftime(liege_BAS$sys_date, liege_BAS$DATE.START.ART, 
+                                         units="weeks")
+
+liege_BAS$art_duration_months <- (liege_BAS$art_duration_weeks)/4.348125 
+
+liege_BAS$art_duration_years <- (liege_BAS$art_duration_months)/12
+liege_BAS$art_duration_years <- as.numeric(liege_BAS$art_duration_years)
+
+#remove unnecessary cols from liege_BAS
+liege_BAS <- liege_BAS[, -c(22, 23)]
 
 #standardize spelling in ethnic
 liege_BAS$ETHNIC <- gsub("africain", "Africain", liege_BAS$ETHNIC)
@@ -187,37 +201,35 @@ liege_BAS$GENDER <- gsub("O", NA, liege_BAS$GENDER)
 
 ########### Liege master DF -------
 
-#liege_px will include dead patients
+#liege_master will include dead patients
 #For current living patients under follow up, use liege_not_LTFU
 
-liege_px <- comb(liege_BAS, liege_death)
+liege_master <- comb(liege_BAS, liege_death)
 
-liege_px$GENDER <- gsub("F", "Female", liege_px$GENDER)
-liege_px$GENDER <- gsub("M", "Male", liege_px$GENDER)
-
-liege_px <- binning_ages(liege_px)
+liege_master$GENDER <- gsub("F", "Female", liege_master$GENDER)
+liege_master$GENDER <- gsub("M", "Male", liege_master$GENDER)
 
 ######################## Liege ethnic var -------------------
 #rename the country variable in Liege_not_LTFU to match pierre_not_LTFU's region of origin
 
-liege_px <- within(liege_px, COUNTRY[COUNTRY == 'Belgique' | COUNTRY == 'Italie'|
+liege_master <- within(liege_master, COUNTRY[COUNTRY == 'Belgique' | COUNTRY == 'Italie'|
                                                COUNTRY == 'France'| COUNTRY == 'Espagne'| 
                                                COUNTRY == 'Grece' | COUNTRY == 'Royaume Uni' |
                                                COUNTRY == 'Portugal' | COUNTRY == 'Albanie' |
                                                COUNTRY == 'Pays-Bas'] <- 'Western Europe')
 
-liege_px <- within(liege_px, COUNTRY[COUNTRY == 'Turquie' | COUNTRY == 'Inde'|
+liege_master <- within(liege_master, COUNTRY[COUNTRY == 'Turquie' | COUNTRY == 'Inde'|
                                                COUNTRY == 'Armenie'| COUNTRY == 'Indonesie'| 
                                                COUNTRY == 'Japon' | COUNTRY == 'Thailande' |
                                                COUNTRY == 'Liban' | COUNTRY == 'Ouzbekistan' |
                                                COUNTRY == 'Kirghizistan' | COUNTRY == 'Chine'] <- 'Asia')
 
-liege_px <- within(liege_px, COUNTRY[COUNTRY == 'Slovaquie' | COUNTRY == 'Russie' |
+liege_master <- within(liege_master, COUNTRY[COUNTRY == 'Slovaquie' | COUNTRY == 'Russie' |
                                                COUNTRY == 'Roumanie' | COUNTRY == 'Pologne' |
                                                COUNTRY == 'Lituanie' | COUNTRY == 'Ukraine' |
                                                COUNTRY == 'Georgie'] <- 'Eastern Europe')
 
-liege_px <- within(liege_px, COUNTRY[COUNTRY == 'Mali' | COUNTRY == 'Rwanda'|
+liege_master <- within(liege_master, COUNTRY[COUNTRY == 'Mali' | COUNTRY == 'Rwanda'|
                                                COUNTRY == 'Ouganda'| COUNTRY == 'Niger'| 
                                                COUNTRY == 'Kenya'| COUNTRY == 'RDC'|
                                                COUNTRY == 'Sierra Leone'| COUNTRY == 'Tchad'|
@@ -235,50 +247,41 @@ liege_px <- within(liege_px, COUNTRY[COUNTRY == 'Mali' | COUNTRY == 'Rwanda'|
                                                COUNTRY == 'Guinee'| COUNTRY == 'RDC (Goma)' |
                                                COUNTRY == 'Erythree'] <- 'Sub-Saharan Africa')
 
-liege_px <- within(liege_px, COUNTRY[COUNTRY == 'Cuba' | COUNTRY == 'Haiti'] <- 'Latin America/Caribbean')
+liege_master <- within(liege_master, COUNTRY[COUNTRY == 'Cuba' | COUNTRY == 'Haiti'] <- 'Latin America/Caribbean')
 
-liege_px <- within(liege_px, COUNTRY[COUNTRY == 'Bresil' | COUNTRY == 'Perou' |
+liege_master <- within(liege_master, COUNTRY[COUNTRY == 'Bresil' | COUNTRY == 'Perou' |
                                                COUNTRY == 'Equateur' | COUNTRY == 'Uruguay' |
                                                COUNTRY == 'Venezuela'] <- 'Latin America/Caribbean')
 
-liege_px <- within(liege_px, COUNTRY[COUNTRY == 'Maroc' | COUNTRY == 'Algerie'] <- 'North Africa/Middle East')
+liege_master <- within(liege_master, COUNTRY[COUNTRY == 'Maroc' | COUNTRY == 'Algerie'] <- 'North Africa/Middle East')
 
 
-liege_px <- within(liege_px, COUNTRY[COUNTRY == 'Canada' | COUNTRY == 'Etats-Unis'] <- 'North America')
+liege_master <- within(liege_master, COUNTRY[COUNTRY == 'Canada' | COUNTRY == 'Etats-Unis'] <- 'North America')
 
-liege_px$COUNTRY<- gsub("Cote d'Ivoire", "Sub-Saharan Africa", liege_px$COUNTRY)
-liege_px$COUNTRY<- gsub("Inconnu", "Unknown", liege_px$COUNTRY)
+liege_master$COUNTRY<- gsub("Cote d'Ivoire", "Sub-Saharan Africa", liege_master$COUNTRY)
+liege_master$COUNTRY<- gsub("Inconnu", "Unknown", liege_master$COUNTRY)
 
 #change ethnicity variable name so ethnic_freq function can be used later
-names(liege_px)[5] <- "REGION_OF_ORIGIN"
+colnames(liege_master)[which(names(liege_master) == "COUNTRY")] <- "REGION_OF_ORIGIN"
 
 
 ############## Liege BMI -------------
 
 ### find BMI for Liege patients
-liege_px$HEIGHT[liege_px$HEIGHT == "999"] <- NA
-liege_px$WEIGHT[liege_px$WEIGHT == "999"] <- NA
+liege_master$HEIGHT[liege_master$HEIGHT == "999"] <- NA
+liege_master$WEIGHT[liege_master$WEIGHT == "999"] <- NA
 
-liege_px$HEIGHT <- liege_px$HEIGHT*liege_px$HEIGHT
-liege_px$BMI <- (liege_px$WEIGHT/liege_px$HEIGHT)*10000
-
-#################### Liege LTFU -----------------
-
-#living, not LTFU px
-liege_not_LTFU_tmp <- subset(liege_px, LAST_VIS_DATE > "2014-05-31")
-liege_not_LTFU <- subset(liege_not_LTFU_tmp, STATUS == "Follow up")
+liege_master$HEIGHT <- liege_master$HEIGHT*liege_master$HEIGHT
+liege_master$BMI <- (liege_master$WEIGHT/liege_master$HEIGHT)*10000
 
 
-#living and dead but not LTFU
-liege_FU_all <- subset(liege_not_LTFU_tmp, STATUS != "Contact lost")
-liege_FU_all <- subset(liege_FU_all, STATUS != "Transferred")
+##### Liege HCV ------
 
-liege_not_LTFU <- binning_ages(liege_not_LTFU)
+#make new col w binary response
+liege_hcv$hcv <- 1
+liege_hcv <- liege_hcv[, c(1, 7)]
 
-#find patients that are LTFU
-liege_LTFU <- subset(liege_px, STATUS == "Contact lost")
-
-ethnic_freq(liege_not_LTFU)
+liege_master <- comb(liege_master, liege_hcv)
 
 ########## Liege CD4 -----------
 
@@ -300,23 +303,14 @@ liege_CD4_recent <- merge(liege_CD4, liege_CD4_recent, by = c("PATIENT_ID", "CD4
 names(liege_CD4_recent)[3] <- 'CD4_RECENT'
 
 #merge into one master CD4 dataframe
-liege_CD4_all <- comb_F(liege_CD4_nadir, liege_CD4_avg)
-liege_CD4_all <- comb_F(liege_CD4_all, liege_CD4_recent)
+liege_CD4_all <- comb(liege_CD4_nadir, liege_CD4_avg)
+liege_CD4_all <- comb(liege_CD4_all, liege_CD4_recent)
 
 #find mean recent CD4 count for px not LTFU
-liege_cd4_not_ltfu <- comb_F(liege_not_LTFU, liege_CD4_all)
+liege_master <- comb(liege_master, liege_CD4_all)
 
 ####################### Liege NICMs --------------------------
 
-#subset liege hcv to just rna positive
-
-liege_hcv_rna_tmp <- subset(liege_hcv_total, VIROSERO_ID == "HCVR")
-
-liege_hcv_rna <- subset(liege_hcv_rna_tmp, VIROSERO_RESULT != "Non detect", na.rm=FALSE)
-
-#eliminate duplciated rows
-liege_hcv_rna <- liege_hcv_rna[!duplicated(liege_hcv_rna$PATIENT_ID),]
-liege_hcv_not_LTFU <- comb_F(liege_hcv_rna, liege_not_LTFU)
 
 #reshape to wide format 
 #create new col that indicates that the person has the disease
@@ -324,17 +318,14 @@ liege_CEP$pos <- 1
 liege_events_wide <- dcast(liege_CEP, PATIENT_ID ~ CLIN_EVENT_ID)
 
 #make new cvd col that is a combo of stroke, acs, icp
-liege_events_wide$cvd <- liege_events_wide$STR + liege_events_wide$ACS + liege_events_wide$ICP
-liege_nicms <- comb_F(liege_events_wide, liege_not_LTFU)
+liege_events_wide$cvd_sum <- liege_events_wide$STR + liege_events_wide$ACS + liege_events_wide$ICP
+liege_events_wide$cvd <- ifelse(liege_events_wide$cvd_sum >= 1, 1, 0)
+liege_master <- comb(liege_master, liege_events_wide)
 
-
-##### Liege smoking -------
-
-table(liege_not_LTFU$SMOKING)
-
-##### Liege hyp -------
-
-table(liege_not_LTFU$DRUG_HTA)
+liege_nadm_wide <- dcast(liege_CEP, PATIENT_ID ~ CLIN_EVENT_SPECIFICATION)
+liege_nadm_wide <- liege_nadm_wide[, -c(3, 4, 8)]
+colnames(liege_nadm_wide)[2:5] <- c("ac", "hl", "liver", "lung")
+liege_master <- comb(liege_master, liege_nadm_wide)
 
 ######## liege eGFR ------
 
@@ -350,7 +341,8 @@ liege_egfr$DATE <- as.Date(liege_egfr$DATE, format = "%m/%d/%Y")
 liege_egfr_base <- ddply(liege_egfr, .(PATIENT_ID), function(x)x[which.min(x$DATE), ])
 liege_egfr_recent <- ddply(liege_egfr, .(PATIENT_ID), function(x)x[which.max(x$DATE), ])
 
-liege_egfr_diff <- data.table(merge(liege_egfr_base, liege_egfr_recent, by="PATIENT_ID"))
+liege_egfr_diff <- comb(liege_egfr_base, liege_egfr_recent)
+liege_egfr_diff <- as.data.table(liege_egfr_diff)
 
 #VALUE.x and VALUE.y have to be numeric
 liege_egfr_diff[VALUE.x == "> 60", VALUE.x := "60"]
@@ -359,30 +351,52 @@ liege_egfr_diff[VALUE.y == "> 60", VALUE.y := "60"]
 liege_egfr_diff$VALUE.x <- as.numeric(as.character(liege_egfr_diff$VALUE.x))
 liege_egfr_diff$VALUE.y <- as.numeric(as.character(liege_egfr_diff$VALUE.y))
 
-liege_egfr_dec <- liege_egfr_diff[, CKD_calc := (VALUE.y <= 0.25*VALUE.x) + 0]
-liege_egfr_ckd <- subset(liege_egfr_dec, CKD_calc == 1)
-liege_egfr_ckd2 <- subset(liege_egfr_dec, VALUE.x == 60)
-liege_egfr_ckd3 <- subset(liege_egfr_ckd2, VALUE.y < 60)
+liege_egfr_diff$pos <- ifelse(liege_egfr_diff$VALUE.y < 60 & liege_egfr_diff$VALUE.x >= 60, 1, 0)
+liege_egfr_diff$pos2 <- ifelse(liege_egfr_diff$VALUE.y <= 0.25*liege_egfr_diff$VALUE.x, 1, 0)
 
-#these are the patients with ckd
-liege_ckd <- comb_F(liege_egfr_ckd2, liege_egfr_ckd3)
+liege_egfr_diff$ckd_tmp <- ifelse(liege_egfr_diff$pos == 1 | liege_egfr_diff$pos2 == 1, 1, 0)
 
-#merge with not LTFU
-liege_ckd_not_LTFU <- comb_F(liege_ckd, liege_not_LTFU)
+liege_egfr_diff <- as.data.frame(liege_egfr_diff)
+liege_egfr_diff <- liege_egfr_diff[, c(1, 10)]
 
-liege_esrd <- subset(liege_nicms, ESRD == 1)
-liege_esrd_ckd <- comb(liege_ckd_not_LTFU, liege_esrd)
-(nrow(liege_esrd_ckd))/nrow(liege_not_LTFU)
+#combine with px in liege_master who have esrd
 
-######### Liege drug data ----------------------
+liege_master <- comb(liege_master, liege_egfr_diff)
+liege_master$ckd <- ifelse(liege_master$ESRD == 1 | liege_master$ckd_tmp == 1, 1, 0)
 
-names(liege_art)[2] <- "drug_code"
+#################### Liege LTFU -----------------
+#rename variables and clean up the df
+liege_master2 <- subset(liege_master, select = -c(cvd_sum, HEPC, ESRD, ckd_tmp, NADM, STR, ICP, ACS, ASCI, COPD, FRA, OSTEOPOROSIS, HIV_TYPE))
+names(liege_master2)[30] <- "dia"
+names(liege_master2)[16] <- "hyp"
 
-#see how many people are on treatment
-liege_started_trt <- comb_F(liege_art, liege_not_LTFU)
-liege_started_trt <- liege_started_trt[!duplicated(liege_started_trt$PATIENT_ID),]
-nrow(liege_started_trt)/nrow(liege_not_LTFU)
 
+liege_master2 <- varto0(liege_master2)
+liege_master2 <- binning_ages(liege_master2)
+
+#living, not LTFU px
+liege_recent <- subset(liege_master2, LAST_VIS_DATE > "2014-05-31")
+liege_not_LTFU <- subset(liege_recent, STATUS == "Follow up")
+
+
+#living and dead but not LTFU
+liege_FU_all <- subset(liege_recent, STATUS != "Contact lost")
+liege_FU_all <- subset(liege_FU_all, STATUS != "Transferred")
+
+#find patients that are LTFU
+liege_LTFU <- subset(liege_px, STATUS == "Contact lost")
+
+liege_dead <- subset(liege_FU_all, STATUS == "Death")
+
+ethnic_freq(liege_not_LTFU)
+
+##### Liege smoking -------
+
+table(liege_not_LTFU$SMOKING)
+
+##### Liege hyp -------
+
+table(liege_not_LTFU$DRUG_HTA)
 
 ### Liege drug graphs ---------
 
@@ -392,48 +406,6 @@ liege_art2015 <- subset(liege_art, is.na(ART_END_DATE))
 liege_art_merge <- merge(liege_artcodes, liege_art2015, by = "drug_code", all.x=TRUE, all.y=TRUE)
 liege_art_merge2 <- liege_art_merge %>% count(art_name, wt = NULL)
 liege_art_merge2 <- merge(liege_art_merge2, liege_artcodes, by = "art_name", all.x=TRUE, all.y=TRUE)
-
-liege_art_count <- subset(liege_art_merge2, drug_class != "Integrase_inhib")
-liege_art_count <- subset(liege_art_count, drug_class != "Entry_inhib")
-liege_art_count <- subset(liege_art_count, drug_class != "Other")
-liege_art_count <- subset(liege_art_count, drug_class != "Fusion_inhib")
-
-
-liege_art_count <- liege_art_count[!duplicated(liege_art_count$art_name),]
-## Create separate palette for each drug class
-liege_art_count$drug_class <- factor(liege_art_count$drug_class)
-
-dropme <- subset(liege_art_count, drug_class != 'Entry_inhib')
-dropme2 <- subset(dropme, drug_class != 'Integrase_inhib')
-dropme3 <- subset(dropme2, drug_class != 'Fusion_inhib')
-
-liege_art_count <- droplevels(dropme3)
-
-## Add a column for positioning drug labels on graph
-liege_art_count = liege_art_count %>% group_by(drug_class) %>%
-  mutate(cum.freq = cumsum(n) - 0.5*n)
-
-ncol = table(liege_art_count$drug_class)
-repeating.pal = mapply(function(x,y) brewer.pal(x,y), ncol, 
-                       c("Set3","Set3","Set3","Set3"))
-
-#repeating.pal[[2]] = repeating.pal[[2]][1:2]  # We only need 2 colors but brewer.pal creates 3 minimum
-
-repeating.pal = unname(unlist(repeating.pal))
-
-liege_art_count_sorted <- liege_art_count[order(liege_art_count$drug_class),]
-liege_art_count_sorted$labOrder <- liege_art_count$art_name
-liege_art_count_sorted$colours<-repeating.pal
-
-liege_art_names <- ggplot(data = liege_art_count_sorted, aes(x=drug_class, y=n, fill=labOrder) ) + 
-  geom_bar(stat="identity", colour="black", lwd=0.2) +
-  geom_text(aes(label=paste0(art_name,": ", n), y=cum.freq, size=n), colour="grey20", fontface="bold") +
-  xlab("Drug class") + ylab("Number of patients") + 
-  ggtitle("Liege ART drug counts") +
-  scale_fill_manual(values=liege_art_count_sorted$colours) +
-  guides(fill=FALSE) + theme(plot.title = element_text(size = 20))
-
-
 
 #end of Liege cleaning
 
@@ -450,29 +422,10 @@ pierre_px$sys_date <- as.Date(format(today, format = "%Y-%m-%d"))
 #use previously defined age_years function
 pierre_px$age <- age_years(pierre_px$DOB, pierre_px$sys_date)
 
-######################### Pierre LTFU -----------
+############ Pierre CVD ----------------
 
-## Create dataframes of the not_LTFU px that should be used for 2015 snapshot
-
-#first subset living patients
-
-pierre_px$DTE_END_STUDY <- as.Date(pierre_px$DTE_END_STUDY, format = "%d/%m/%Y")
-
-pierre_px <- binning_ages(pierre_px)
-pierre_alive <- subset(pierre_px, DEATH == "0")
-
-#subset into LTFU and FU
-
-pierre_LTFU <- subset(pierre_alive, pierre_alive$DTE_END_STUDY <= "2014-05-31")
-
-#living and under follow up
-pierre_not_LTFU <- subset(pierre_alive, pierre_alive$DTE_END_STUDY > "2014-05-31")
-
-#followed up with since 2014 but dead and alive
-pierre_FU_all <- subset(pierre_px, pierre_px$DTE_END_STUDY > "2014-05-31")
-
-
-pierre_not_LTFU_id <- data.frame("PATIENT_ID" = pierre_not_LTFU$PATIENT_ID)
+#pierre cvd includes hypchol right now, need to remove
+pierre_events <- subset(pierre_events, OUTCOME != "2 - CVD - HYPCHOL")
 
 ############ make pierre_events into wide format ------
 
@@ -495,78 +448,76 @@ pierre_events2 <- within(pierre_events2, {
 pierre_events_wide <- reshape(pierre_events2, timevar = 'row_num', 
                                  idvar = 'PATIENT_ID', direction = 'wide')
 
-#make pierre_events only include the patients from pierre_px_recent
-pierre_events_recent <- comb_F(pierre_not_LTFU_id, pierre_events_wide)
+
 
 #clean it up by dropping some columns
 
-pierre_events_recent <- subset(pierre_events_recent, select = -c(pointless_col.1, pointless_col.2, 
-                                                                 pointless_col.3, pointless_col.4, 
-                                                                 pointless_col.5, pointless_col.6, 
-                                                                 pointless_col.7, patient_row.1, 
-                                                                 patient_row.2, patient_row.3, 
-                                                                 patient_row.4, patient_row.5, 
-                                                                 patient_row.6, patient_row.7))
+# pierre_events_recent <- subset(pierre_events_recent, select = -c(pointless_col.1, pointless_col.2, 
+#                                                                  pointless_col.3, pointless_col.4, 
+#                                                                  pointless_col.5, pointless_col.6, 
+#                                                                  pointless_col.7, patient_row.1, 
+#                                                                  patient_row.2, patient_row.3, 
+#                                                                  patient_row.4, patient_row.5, 
+#                                                                  patient_row.6, patient_row.7))
                                
                              
 
 ########################## Pierre Hepatitis -------------------------------
 
 
-pierre_events_recent <- as.data.frame(lapply(pierre_events_recent, FUN = function(foo) recode(foo, "c('No', 'N')= 0; 
+pierre_events_wide <- as.data.frame(lapply(pierre_events_wide, FUN = function(foo) recode(foo, "c('No', 'N')= 0; 
                                                                                               c('Yes', 'Y')= 1; 'UNK'= NA")))
 
-for(i in c(7:18, 23:34, 39:50, 55:66, 71:82, 87:98, 103:113)) {
-  pierre_events_recent[,i] <- as.numeric(as.character(pierre_events_recent[,i]))
+for(i in c(7:17, 25:35, 43:53, 61:71, 79:89)) {
+  pierre_events_wide[,i] <- as.numeric(as.character(pierre_events_wide[,i]))
 }
 
 
-pierre_events_recent$sum_hcv <- rowSums(pierre_events_recent[,c("HCV_AT_EVENT.1", "HCV_AT_EVENT.2", 
+
+pierre_events_wide$sum_hcv <- rowSums(pierre_events_wide[,c("HCV_AT_EVENT.1", "HCV_AT_EVENT.2", 
                                                                 "HCV_AT_EVENT.3", "HCV_AT_EVENT.4", 
-                                                                "HCV_AT_EVENT.5", "HCV_AT_EVENT.6", 
-                                                                "HCV_AT_EVENT.7")], na.rm=T)
+                                                                "HCV_AT_EVENT.5")], na.rm=T)
 
-pierre_events_recent$hcv_yes <- ifelse(pierre_events_recent$sum_hcv >= 1, 1, 0)
+pierre_events_wide$hcv <- ifelse(pierre_events_wide$sum_hcv >= 1, 1, 0)
 
-pierre_events_recent$sum_hbv <- rowSums(pierre_events_recent[,c("HBV_AT_EVENT.1", "HBV_AT_EVENT.2", 
+pierre_events_wide$sum_hbv <- rowSums(pierre_events_wide[,c("HBV_AT_EVENT.1", "HBV_AT_EVENT.2", 
                                                                 "HBV_AT_EVENT.3", "HBV_AT_EVENT.4", 
-                                                                "HBV_AT_EVENT.5", "HBV_AT_EVENT.6", 
-                                                                "HBV_AT_EVENT.7")], na.rm=T)
+                                                                "HBV_AT_EVENT.5")], na.rm=T)
 
-pierre_events_recent$hbv_yes <- ifelse(pierre_events_recent$sum_hbv >= 1, 1, 0)
+pierre_events_wide$hbv <- ifelse(pierre_events_wide$sum_hbv >= 1, 1, 0)
+
 
 ################### Pierre CD4 ----------------
 
 #find the minimum nadir cd4
 
-for (i in 1:nrow(pierre_events_recent)) {
-  pierre_events_recent$cd4_nadir[i] <- min(pierre_events_recent[i,c("CD4_NADIR_EVENT.1", 
+for (i in 1:nrow(pierre_events_wide)) {
+  pierre_events_wide$cd4_nadir[i] <- min(pierre_events_wide[i,c("CD4_NADIR_EVENT.1", 
                                                                     "CD4_NADIR_EVENT.2", 
                                                                     "CD4_NADIR_EVENT.3", 
                                                                     "CD4_NADIR_EVENT.4", 
-                                                                    "CD4_NADIR_EVENT.5", 
-                                                                    "CD4_NADIR_EVENT.7")], na.rm=TRUE)
+                                                                    "CD4_NADIR_EVENT.5")], na.rm=TRUE)
 }
 
 
 #make the class of DTE_EVENT cols date rather than factor 
-for(i in c(4, 20, 36, 52, 68, 84, 100)) {
-  pierre_events_recent[,i] <- as.Date(pierre_events_recent[,i], format="%d/%m/%Y")
+for(i in c(4, 22, 40, 58, 76)) {
+  pierre_events_wide[,i] <- as.Date(pierre_events_wide[,i], format="%d/%m/%Y", origin="1900-01-01")
 }
 
 #find cd4 recent for most recent DTE_EVENT
 #subset to just the date cols
 
-pierre_events_cd4 <- pierre_events_recent[, c(1, 4, 7, 20, 23, 36, 39, 52, 55, 68, 71, 84, 87, 100, 103)]
+pierre_events_cd4 <- pierre_events_wide[, c(1, 4, 7, 22, 25, 40, 43, 58, 61, 76, 79)]
 date_cols <- colnames(pierre_events_cd4)[grep("DTE_EVENT",colnames(pierre_events_cd4))]
 pierre_events_cd4$recent_cd4<-pierre_events_cd4[cbind(1:nrow(pierre_events_cd4),grep("DTE_EVENT",colnames(pierre_events_cd4))[apply(sapply(pierre_events_cd4[,date_cols],as.numeric),1,which.max)]+1)]
 
 #eliminate unneeded columns before the merge
 
-pierre_events_cd4 <- pierre_events_cd4[, c(1, 16)]
+pierre_events_cd4 <- pierre_events_cd4[, c(1, 12)]
 
 #merge with pierre_events_recent
-pierre_events_recent <- comb_F(pierre_events_recent, pierre_events_cd4)
+pierre_events_wide <- comb(pierre_events_wide, pierre_events_cd4)
 
 #don't do any calculations on pierre_events_recent until it is combined with not_LTFU
 
@@ -574,22 +525,20 @@ pierre_events_recent <- comb_F(pierre_events_recent, pierre_events_cd4)
 ########### Pierre hyp ------------------
 ##treated for hypertension
 
-pierre_events_recent$sum_hyp <- rowSums(pierre_events_recent[,c("TRT_HYPERTENSION_AT_EVENT.1", "TRT_HYPERTENSION_AT_EVENT.2", 
+pierre_events_wide$sum_hyp <- rowSums(pierre_events_wide[,c("TRT_HYPERTENSION_AT_EVENT.1", "TRT_HYPERTENSION_AT_EVENT.2", 
                                                                 "TRT_HYPERTENSION_AT_EVENT.3", "TRT_HYPERTENSION_AT_EVENT.4", 
-                                                                "TRT_HYPERTENSION_AT_EVENT.5", "TRT_HYPERTENSION_AT_EVENT.6", 
-                                                                "TRT_HYPERTENSION_AT_EVENT.7")], na.rm=T)
+                                                                "TRT_HYPERTENSION_AT_EVENT.5")], na.rm=T)
 
-pierre_events_recent$hyp_yes <- ifelse(pierre_events_recent$sum_hyp >= 1, 1, 0)
+pierre_events_wide$hyp_trt <- ifelse(pierre_events_wide$sum_hyp >= 1, 1, 0)
 
 ###### Pierre smoking -------------------
 
-pierre_events_recent$sum_smoke <- rowSums(pierre_events_recent[,c("EVER_SMOKED_AT_EVENT.1", "EVER_SMOKED_AT_EVENT.2", 
+pierre_events_wide$sum_smoke <- rowSums(pierre_events_wide[,c("EVER_SMOKED_AT_EVENT.1", "EVER_SMOKED_AT_EVENT.2", 
                                                                 "EVER_SMOKED_AT_EVENT.3", "EVER_SMOKED_AT_EVENT.4", 
-                                                                "EVER_SMOKED_AT_EVENT.5", "EVER_SMOKED_AT_EVENT.6", 
-                                                                "EVER_SMOKED_AT_EVENT.7")], na.rm=T)
+                                                                "EVER_SMOKED_AT_EVENT.5")], na.rm=T)
 
 
-pierre_events_recent$smoke_yes <- ifelse(pierre_events_recent$sum_smoke >= 1, 1, 0)
+pierre_events_wide$smoke <- ifelse(pierre_events_wide$sum_smoke >= 1, 1, 0)
 
 ########################## Pierre BMI ----------------------
 
@@ -597,87 +546,93 @@ pierre_events_recent$smoke_yes <- ifelse(pierre_events_recent$sum_smoke >= 1, 1,
 
 #subset to just the BMI cols
 
-pierre_events_bmi <- pierre_events_recent[, c(1, 4, 12, 20, 28, 36, 44, 52, 60, 68, 76, 84, 92, 100, 108)]
+pierre_events_bmi <- pierre_events_wide[, c(1, 4, 12, 22, 30, 40, 48, 58, 66, 76, 84)]
 date_cols <- colnames(pierre_events_bmi)[grep("DTE_EVENT",colnames(pierre_events_bmi))]
 pierre_events_bmi$recent_bmi <- pierre_events_bmi[cbind(1:nrow(pierre_events_bmi),grep("DTE_EVENT",colnames(pierre_events_bmi))[apply(sapply(pierre_events_bmi[,date_cols],as.numeric),1,which.max)]+1)]
 
-pierre_events_bmi_trim <- pierre_events_bmi[, c(1, 16)]
+pierre_events_bmi_trim <- pierre_events_bmi[, c(1, 12)]
 
-pierre_events_recent <- comb_F(pierre_events_recent, pierre_events_bmi_trim)
+pierre_events_wide <- comb(pierre_events_wide, pierre_events_bmi_trim)
 
 ################### Pierre treatment ------------------
 #Started treatment at event
 
-pierre_events_recent$sum_trt <- rowSums(pierre_events_recent[,c("STARTED_TREATMENT_AT_EVENT.1", "STARTED_TREATMENT_AT_EVENT.2", 
+pierre_events_wide$sum_trt <- rowSums(pierre_events_wide[,c("STARTED_TREATMENT_AT_EVENT.1", "STARTED_TREATMENT_AT_EVENT.2", 
                                                                   "STARTED_TREATMENT_AT_EVENT.3", "STARTED_TREATMENT_AT_EVENT.4", 
-                                                                  "STARTED_TREATMENT_AT_EVENT.5", "STARTED_TREATMENT_AT_EVENT.6", 
-                                                                  "STARTED_TREATMENT_AT_EVENT.7")], na.rm=T)
+                                                                  "STARTED_TREATMENT_AT_EVENT.5")], na.rm=T)
 
 
-pierre_events_recent$started_trt_yes <- ifelse(pierre_events_recent$sum_trt >= 1, 1, 0)
+pierre_events_wide$started_trt <- ifelse(pierre_events_wide$sum_trt >= 1, 1, 0)
 
-#clean up pierre_events_recent
+######### Pierre NICMs ------------
 
-pierre_events_recent_clean <- pierre_events_recent[, c(1, 115, 117, 118, 119, 121, 123, 124, 126)]
+pierre_events_wide$cvd <-apply(pierre_events_wide[,1:ncol(pierre_events_wide)], 
+                                     MARGIN=1, function(x) {sum(x=="2 - CVD - STROKE" | x=="2 - CVD - MI" | x=="2 - CVD - Endart" | 
+                                                                  x=="2 - CVD - BYPASS" | x=="2 - CVD - Angioplasty", 
+                                                                na.rm=TRUE)})
 
-################ Create Pierre master ----------
+pierre_events_wide$ac <-apply(pierre_events_wide[,1:ncol(pierre_events_wide)], 
+                                MARGIN=1, function(x) {sum(x=="11 - ANAL Cancer", na.rm=TRUE)})
 
-pierre_not_LTFU$REGION_OF_ORIGIN <- gsub("North Africa", "North Africa/Middle East", pierre_not_LTFU$REGION_OF_ORIGIN)
+pierre_events_wide$lung <-apply(pierre_events_wide[,1:ncol(pierre_events_wide)], 
+                                MARGIN=1, function(x) {sum(x=="10 - LUNG Cancer", na.rm=TRUE)})
 
-pierre_not_LTFU <- comb_F(pierre_not_LTFU, pierre_events_recent_clean)
+pierre_events_wide$hl <-apply(pierre_events_wide[,1:ncol(pierre_events_wide)], 
+                                MARGIN=1, function(x) {sum(x=="8 - Hodg. Lymp", na.rm=TRUE)})
 
-ethnic_freq(pierre_not_LTFU)
+pierre_events_wide$hyp <-apply(pierre_events_wide[,1:ncol(pierre_events_wide)], 
+                                MARGIN=1, function(x) {sum(x=="3 - HYPERTENSION", na.rm=TRUE)})
 
-################## Pierre drug data --------------------------------
+pierre_events_wide$dia <-apply(pierre_events_wide[,1:ncol(pierre_events_wide)], 
+                                 MARGIN=1, function(x) {sum(x=="4 - DIABETE", na.rm=TRUE)})
 
-#find out how many patients not LTFU have started treatment
-pierre_events_not_LTFU <- comb_F(pierre_not_LTFU, pierre_events)
+pierre_events_wide$ckd <-apply(pierre_events_wide[,1:ncol(pierre_events_wide)], 
+                                 MARGIN=1, function(x) {sum(x=="1 - RENAL DISEASE", na.rm=TRUE)})
 
-#library("plyr")
-pierre_events_started_trt <-ddply(pierre_events_not_LTFU,.(PATIENT_ID),summarize, 
-                                  started_trt=max(STARTED_TREATMENT_AT_EVENT))
-
-pierre_renal <- subset(pierre_events_recent, OUTCOME == "1 - RENAL DISEASE")
-pierre_cvd <- subset(pierre_events_recent, OUTCOME == "2 - CVD")
-
-
-p_renal1 <- ggplot(data=pierre_renal, aes(x=DURATION_PI_MONTHS_AT_EVENT, y=AGE_AT_EVENT)) +
-  geom_point() +
-  xlab("Duration of PI exposure at event (months)") +
-  ylab("Age at event") +
-  ggtitle("St. Pierre - Renal")
-
-p_renal2 <- ggplot(data=pierre_renal, aes(x=DURATION_NRTI_MONTHS_AT_EVENT, y=AGE_AT_EVENT)) +
-  geom_point() +
-  xlab("Duration of NRTI exposure at event (months)") +
-  ylab("Age at event") 
-
-p_renal3 <- ggplot(data=pierre_renal, aes(x=DURATION_NNRTI_MONTHS_AT_EVENT, y=AGE_AT_EVENT)) +
-  geom_point() + 
-  xlab("Duration of NRTI exposure at event (months)") +
-  ylab("Age at event")
-
-grid.arrange(p_renal1, p_renal2, p_renal3)
-
-p_cvd1 <- ggplot(data=pierre_cvd, aes(x=DURATION_PI_MONTHS_AT_EVENT, y=AGE_AT_EVENT)) +
-  geom_point() +
-  xlab("Duration of PI exposure at event (months)") +
-  ylab("Age at event") +
-  ggtitle("St. Pierre - CVD")
-
-p_cvd2 <- ggplot(data=pierre_cvd, aes(x=DURATION_NRTI_MONTHS_AT_EVENT, y=AGE_AT_EVENT)) +
-  geom_point() + 
-  xlab("Duration of NRTI exposure at event (months)") +
-  ylab("Age at event")
-
-p_cvd3 <- ggplot(data=pierre_cvd, aes(x=DURATION_NNRTI_MONTHS_AT_EVENT, y=AGE_AT_EVENT)) +
-  geom_point() + 
-  xlab("Duration of NNRTI exposure at event (months)") +
-  ylab("Age at event")
-
-grid.arrange(p_cvd1, p_cvd2, p_cvd3)
+pierre_events_wide$liver <-apply(pierre_events_wide[,1:ncol(pierre_events_wide)], 
+                               MARGIN=1, function(x) {sum(x=="6 - LIVER Cancer", na.rm=TRUE)})
 
 
+######################### Pierre LTFU -----------
+
+## Create dataframes of the not_LTFU px that should be used for 2015 snapshot
+
+#first subset living patients
+
+pierre_px$DTE_END_STUDY <- as.Date(pierre_px$DTE_END_STUDY, format = "%d/%m/%Y")
+
+pierre_master <- comb(pierre_px, pierre_events_wide)
+
+#clean up pierre_comb
+
+pierre_master2 <- subset(pierre_master, select = c(PATIENT_ID, DOB, GENDER, REGION_OF_ORIGIN, DTE_START_STUDY, 
+                                                  DTE_END_STUDY, DEATH, age,
+                                                  age_binned, hcv, hbv, cd4_nadir, recent_cd4, hyp_trt, smoke, 
+                                                  recent_bmi, started_trt, liver, cvd, ac, lung, hl, hyp, dia, ckd))
+
+
+pierre_master2$hyp <- as.numeric(pierre_master2$hyp)
+pierre_master2$ckd <- as.numeric(pierre_master2$ckd)
+
+pierre_master2 <- varto0(pierre_master2)
+pierre_master2 <- binning_ages(pierre_master2)
+
+#region of origin standardization
+pierre_master2$REGION_OF_ORIGIN <- gsub("North Africa", "North Africa/Middle East", pierre_master2$REGION_OF_ORIGIN)
+
+pierre_alive <- subset(pierre_master2, DEATH == "0")
+
+#subset into LTFU and FU
+
+pierre_LTFU <- subset(pierre_alive, DTE_END_STUDY <= "2014-05-31")
+
+#living and under follow up
+pierre_not_LTFU <- subset(pierre_alive, DTE_END_STUDY > "2014-05-31")
+
+#followed up with since 2014 but dead and alive
+pierre_FU_all <- subset(pierre_master2, DTE_END_STUDY > "2014-05-31")
+
+pierre_dead <- subset(pierre_FU_all, DEATH == "1")
 
 #End of Pierre cleaning
 #############################################################################################
@@ -764,6 +719,7 @@ erasme_master <- within(erasme_master, Country_of_origin[Country_of_origin == 'M
 
 
 erasme_master <- within(erasme_master, Country_of_origin[Country_of_origin == 'Canada' | Country_of_origin == 'etats-Unis'] <- 'North America')
+names(erasme_master)[7] <- "REGION_OF_ORIGIN"
 
 ##### Erasme cd4 ---------
 
@@ -805,7 +761,7 @@ erasme_cvd$code <- replace(erasme_cvd$code,which(is.na(erasme_cvd$code)),"Unknow
 erasme_cvd$cvd <- 1
 
 #drop the date col 
-erasme_cvd <- erasme_cvd[, -c(2)]
+erasme_cvd <- subset(erasme_cvd, select= -c(ae_date))
 
 #reshape
 erasme_cvd_wide <- reshape(erasme_cvd, timevar = 'code', 
@@ -821,199 +777,118 @@ colnames(erasme_cvd_wide) <- c("PATIENT_ID", "STROKE", "UNKNOWN", "MI", "ICP")
 erasme_cvd_wide$cvd_sum <- erasme_cvd_wide$STROKE + erasme_cvd_wide$UNKNOWN + erasme_cvd_wide$MI + 
   erasme_cvd_wide$MI + erasme_cvd_wide$ICP
 
-erasme_cvd_wide$cvd_yes <- ifelse(erasme_cvd_wide$cvd_sum >= 1, 1, 0)
+erasme_cvd_wide$cvd <- ifelse(erasme_cvd_wide$cvd_sum >= 1, 1, 0)
 
 #merge with erasme_not_LTFU
 erasme_master <- comb(erasme_master, erasme_cvd_wide)
 
 ######## Erasme renal ----------
 
-erasme_renal$ckd_yes <- 1
-erasme_renal <- erasme_renal[, -c(2)]
+erasme_renal$ckd <- 1
+
+#drop the date col 
+erasme_renal <- subset(erasme_renal, select= -c(ae_date))
 
 erasme_master <- comb(erasme_master, erasme_renal)
 
 ####### Erasme diabetes ------
 
-erasme_diabetes$dia_yes <- 1
-erasme_diabetes <- erasme_diabetes[, -c(2:3)]
+erasme_diabetes$dia <- 1
+erasme_diabetes <- subset(erasme_diabetes, select= -c(ae_date, CODE))
 
 erasme_master <- comb(erasme_master, erasme_diabetes)
 
 ######### Erasme cancer -------
 
-erasme_cancer <- erasme_cancer[, -c(2:3)]
+erasme_cancer <- subset(erasme_cancer, select = -c(ae_date, code))
 
-erasme_cancer$specCode[erasme_cancer$specCode == 0] <- "AC"
-erasme_cancer$specCode[erasme_cancer$specCode == 1] <- "HL"
-erasme_cancer$nadm_yes <- 1
+erasme_cancer$specCode[erasme_cancer$specCode == 0] <- "ac"
+erasme_cancer$specCode[erasme_cancer$specCode == 1] <- "hl"
+erasme_cancer$nadm <- 1
 
 erasme_cancer_wide <- reshape(erasme_cancer, timevar = "specCode", idvar = 'PATIENT_ID', direction = 'wide')
-erasme_cancer_wide[is.na(erasme_cancer_wide)] <- 0
+colnames(erasme_cancer_wide)[c(2:3)] <- c("hl", "ac")
 
 erasme_master <- comb(erasme_master, erasme_cancer_wide)
 
 ###### Erasme HTA -------
 
-erasme_hta$hta_yes <- 1
-erasme_hta <- erasme_hta[, -c(2:3)]
+erasme_hta$hyp <- 1
+erasme_hta <- subset(erasme_hta, select = -c(ae_date, medical.history.report))
 
 erasme_master <- comb(erasme_master, erasme_hta)
-
+  
 ###### Erasme liver ------
 
 #make new columns for HCV and HBV status
 
-erasme_liver$hepb_yes <- ifelse(erasme_liver$Medical.history.report == "Hepatite B chronique", 1, 0)
-erasme_liver$hepc_yes <- ifelse(erasme_liver$Medical.history.report == "Hepatite C chronique", 1, 0)
+erasme_liver$hbv <- ifelse(erasme_liver$Medical.history.report == "Hepatite B chronique", 1, 0)
+erasme_liver$hcv <- ifelse(erasme_liver$Medical.history.report == "Hepatite C chronique", 1, 0)
 
-erasme_liver <- erasme_liver[, -c(2:4)]
+erasme_liver <- subset(erasme_liver, select = -c(ae_date, Medical.history.report, Notes))
 
 #merge with erasme_master
 erasme_master <- comb(erasme_master, erasme_liver)
 
+########################### erasme years on ART -----------------
+
+#find the maximum value of years on any ART for each patient
+#recalculate art duration
+
+#make the art end date sys_date if it is NA
+erasme_ART$art_end.date <- as.Date(erasme_ART$art_end.date, "%d-%m-%Y")
+erasme_ART$art_start.date <- as.Date(erasme_ART$art_start.date, format = "%d-%m-%Y")
+
+erasme_ART$art_end.date[is.na(erasme_ART$art_end.date)] <- as.Date(today, format = "%d-%m-%Y")
+
+erasme_ART$art_duration_weeks <- difftime(erasme_ART$art_end.date, erasme_ART$art_start.date, 
+                                          units="weeks")
+
+erasme_ART$art_duration_months <- (erasme_ART$art_duration_weeks)/4.348125 
+
+erasme_ART$art_duration_years <- (erasme_ART$art_duration_months)/12
+
+erasme_years_ART <- aggregate(art_duration_years ~ PATIENT_ID, data = erasme_ART, max)
+
+erasme_master <- comb(erasme_master, erasme_years_ART)
+names(erasme_master)[7] <- "REGION_OF_ORIGIN"
+erasme_master$art_duration_years<- as.numeric(erasme_master$art_duration_years)
+
+erasme_master$art_duration_years[is.na(erasme_master$art_duration_years)] <- 0
+erasme_master$started_trt <- ifelse(erasme_master$art_duration_years > 0, 1, 0)
+
 ####### Erasme LTFU --------
+for(i in c(24:31)) {
+  erasme_master[,i] <- as.numeric(as.character(erasme_master[,i]))
+}
+
+#create col with 0s for liver
+erasme_master$liver <- 0
+erasme_master$lung <- 0
+erasme_master <- varto0(erasme_master)
+erasme_master <- binning_ages(erasme_master)
 
 #limit it to px who have been followed up with since 2014
+
 erasme_FU_all <- subset(erasme_master, LAST_VISIT > as.Date("2014-05-31"))
 erasme_not_LTFU <- subset(erasme_FU_all, is.na(DEATH_Date))
 
-erasme_LTFU <- subset(erasme_master, LAST_VISIT < as.Date("2015-06-01"))
+erasme_LTFU <- subset(erasme_master, LAST_VISIT < as.Date("2014-06-01"))
 
+erasme_FU_all$death <- ifelse(erasme_FU_all$DEATH_Date > "1900-01-01", 1, 0)
+erasme_dead <- subset(erasme_FU_all, death == 1)
 
-########################### erasme drug data -----------------
+#do all calcs on erasme_not_LTFU
 
-#do a calculation to find art duration? 
-#then reshape it 
-#find the maximum value of years on any ART for each patient
-erasme_years_ART <- aggregate(art_duration ~ PATIENT_ID, data = erasme_ART, max)
-erasme_years_ART_not_LTFU <- comb_F(erasme_years_ART, erasme_not_LTFU)
-mean(erasme_years_ART_not_LTFU$art_duration)
-
-erasme_art_tmp <- subset(erasme_ART, !is.na(art_start.date))
-
-erasme_started_trt <- comb_F(erasme_not_LTFU, erasme_art_tmp)
-erasme_started_trt <- erasme_started_trt[!duplicated(erasme_started_trt$PATIENT_ID)]
-
-
-####### erasme drug graphs ----------
-
-erasme_ART <- as.data.table(erasme_ART)
-erasme_ART[, id := 1:.N, by = PATIENT_ID]
-erasme_ART_cast <- dcast(erasme_ART[,list(PATIENT_ID, id, art_name)], PATIENT_ID ~ id, value.var = 'art_name', fill = 0)
-
-erasme_ART_num <- subset(erasme_ART, art_name != is.na(art_name))
-
-
-erasme_ART$art_start.date <- as.Date(erasme_ART$art_start.date, 
-                                     format = "%d-%m-%Y")
-erasme_ART$art_end.date <- as.Date(erasme_ART$art_end.date, 
-                                   format = "%d-%m-%Y")
-
-#subset to just the drugs that patients are still on (no end date)
-erasme_ART2015 <- subset(erasme_ART, is.na(erasme_ART$art_end.date))
-
-erasme_ART2015 <- as.data.table(erasme_ART2015)
-erasme_ART2015[, id := 1:.N, by = PATIENT_ID]
-erasme_ART2015_cast <- dcast(erasme_ART2015[,list(PATIENT_ID, id, art_name)], PATIENT_ID ~ id, value.var = 'art_name', fill = 0)
-
-#make the ID column a factor instead of integer
-erasme_ART2015$PATIENT_ID <- factor(erasme_ART2015$PATIENT_ID)    
-
-#add 1 to every row in column art_duration
-#be careful to only do this once
-erasme_ART2015$art_duration <- erasme_ART2015$art_duration + 1
-
-#exclude rows where data is not available for both the art duration and the drug name
-erasme_ART2015 <- as.data.frame(erasme_ART2015)
-erasme_ART2015 <- erasme_ART2015[!is.na(erasme_ART2015["art_duration"]),]
-
-erasme_ART2015$art_name <- as.character(erasme_ART2015$art_name)
-
-erasme_art_count <- count(erasme_ART2015, vars = 'art_name')
-#add a column that specifies the drug class
-erasme_art_count$drug_class <- vector(mode='character', length=nrow(erasme_art_count))
-
-#only include drugs which appear in erasme_art_count
-erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Invirase', 'Norvir', 'Prezista', 'Reyataz', 
-                                                             'Rezolsta', 'Telzir', 'Tivicay')] <- 'PI'
-
-erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Edurant' , 'Intelence', 'Stocrin',
-                                                             'Viramune')] <- 'NNRTI'
-
-
-erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Emtriva', 'Epivir', 'Kivexa', 'Retrovir', 'Videx',
-                                                             'Videz', 'Viread', 'Zerit', 'Ziagen')] <- 'NRTI'
-
-
-erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Atripla', 'Combivir', 'Eviplera',
-                                                             'Kaletra', 'Stribild', 'Triumeq',
-                                                             'Trizivir', 'Truvada')] <- 'comb'
-
-erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Celsentri')] <- 'Entry_inhib'
-#erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Fuzeon')] <- 'Fusion_inhib'
-erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Isentress')] <- 'Integrase_inhib'
-erasme_art_count$drug_class[erasme_art_count$art_name %in% c('Other test drug')] <- 'Other_test_drug'
-
-erasme_art_count$drug_class <- factor(erasme_art_count$drug_class)
-
-dropme <- subset(erasme_art_count, drug_class != 'Entry_inhib')
-dropme2 <- subset(dropme, drug_class != 'Integrase_inhib')
-dropme3 <- subset(dropme2, drug_class != 'Other_test_drug')
-
-erasme_art_count <- droplevels(dropme3)
-
-#second solution from stackoverflow
-
-#library(dplyr) # for the chaining (%>%) operator
-
-## Add a column for positioning drug labels on graph
-erasme_art_count = erasme_art_count %>% group_by(drug_class) %>%
-  mutate(cum.freq = cumsum(freq) - 0.5*freq)
-
-ncol = table(erasme_art_count$drug_class)
-repeating.pal = mapply(function(x,y) brewer.pal(x,y), ncol, 
-                       c("Set3","Set3","Set3","Set3"))
-
-#repeating.pal[[2]] = repeating.pal[[2]][1:2]  # We only need 2 colors but brewer.pal creates 3 minimum
-
-repeating.pal = unname(unlist(repeating.pal))
-
-erasme_art_count_sorted <- erasme_art_count[order(erasme_art_count$drug_class),]
-erasme_art_count_sorted$labOrder <- erasme_art_count$art_name
-erasme_art_count_sorted$colours<-repeating.pal
-
-erasme_art_names <- ggplot(data = erasme_art_count_sorted, aes(x=drug_class, y=freq, fill=labOrder) ) + 
-  geom_bar(stat="identity", colour="black", lwd=0.2) +
-  geom_text(aes(label=paste0(art_name,": ", freq), y=cum.freq, size=freq), colour="grey20", fontface="bold") +
-  xlab("Drug class") + ylab("Number of patients") + 
-  ggtitle("Erasme ART drug counts") +
-  scale_fill_manual(values=erasme_art_count_sorted$colours) +
-  guides(fill=FALSE) + theme(plot.title = element_text(size = 20))
-
-
-#find average duration on ART by patient
-erasme_ART$art_duration <- erasme_ART$art_duration + 1
-
-
-#make dataframe that is ART patients who are alive
-erasme_alive_art <- merge(erasme_alive, erasme_ART, by = "PATIENT_ID", all.x=FALSE)
-#find the max value in art_duration for each px
-erasme_alive_art <- as.data.table(erasme_alive_art)
-erasme_alive_art[, id := 1:.N, by = PATIENT_ID]
-erasme_alive_art <- dcast(erasme_alive_art[,list(PATIENT_ID, id, art_duration)], PATIENT_ID ~ id, value.var = 'art_duration', fill = 0)
-
-erasme_alive_art$max <- apply(erasme_alive_art[, 2:37], 1, max)
-mean(erasme_alive_art$max)
-
-mean(liege_not_LTFU$years_on_ART, na.rm=TRUE)
-
-#end of Erasme cleaning
 ##############################################################################################
+
 ###### Ghent master ---------
 
+#convert all necessary columns to date cols
+
+ghent_px2[,c(2, 7, 12, 29)]<-lapply(ghent_px2[,c(2, 7, 12, 29)],as.Date, format = "%Y-%m-%d")
+
 #ghent age
-ghent_px2$DATE_BIRTH <- as.Date(ghent_px2$DATE_BIRTH, format = "%Y-%m-%d")
 
 ghent_px2$sys_date <- as.Date(format(today, format = "%Y-%m-%d"))
 
@@ -1023,185 +898,133 @@ ghent_px2$age <- age_years(ghent_px2$DATE_BIRTH, ghent_px2$sys_date)
 #remove column that was age at time of data collection
 ghent_px2 <- ghent_px2[, !(colnames(ghent_px2) %in% "AGE")]
 
-#easiest may be to subset just the date of last visit and merge it with ghent_new
+########## Ghent hyp -------
+
+names(ghent_px1)[2] <- "OUTCOME"
+ghent_px1$hyp <- ifelse(ghent_px1$OUTCOME == 6, 1, 0)
+ghent_hyp <- ghent_px1[c(1, 16)]
+
+ghent_hyp_wide <- dcast(ghent_hyp, PATIENT_ID ~ hyp)
+ghent_hyp_wide_final <- ghent_hyp_wide[c(1, 3)]
+names(ghent_hyp_wide_final)[2] <- "hyp"
+ghent_hyp_wide_final$hyp <- ifelse(ghent_hyp_wide_final$hyp > 0, 1, 0)
+
+#####Ghent recent -------
 
 ghent_last_vis <- data.frame(PATIENT_ID = ghent_px1$PATIENT_ID, LAST_VISIT_DATE = as.Date(ghent_px1$LAST_VISIT_DATE))
 ghent_last_vis <- ghent_last_vis[!duplicated(ghent_last_vis),]
 
-ghent_px_master <- as.data.table(merge(ghent_px2, ghent_last_vis, by="PATIENT_ID"))
+ghent_master <- comb(ghent_px2, ghent_last_vis)
+ghent_master <- comb(ghent_master, ghent_hyp_wide_final)
 
-#limit to 2014 and on
-
-ghent_px_master <- ghent_px_master[ghent_px_master$LAST_VISIT_DATE > as.Date("2011-12-31")]
-
-ghent_px_master$status[ghent_px_master$LAST_VISIT_DATE > as.Date("2014-05-31")] <- "Follow up"
-ghent_px_master$status[ghent_px_master$LAST_VISIT_DATE < as.Date("2014-05-31")] <- "LTFU"
-
-ghent_px_master$DATE_DEATH <- as.Date(ghent_px_master$DATE_DEATH, format = "%Y-%m-%d")
-ghent_px_master$status[ghent_px_master$DATE_DEATH > as.Date("2000-07-01")] <- "Death"
-
-ghent_px_master$GENDER <- gsub("M", "Male", ghent_px_master$GENDER)
-ghent_px_master$GENDER <- gsub("F", "Female", ghent_px_master$GENDER)
-
+ghent_master$GENDER <- gsub("M", "Male", ghent_master$GENDER)
+ghent_master$GENDER <- gsub("F", "Female", ghent_master$GENDER)
 
 ################## Ghent ethnic --------------
 
-names(ghent_px_master)[4] <- "REGION_OF_ORIGIN"
+names(ghent_master)[4] <- "REGION_OF_ORIGIN"
 
-ghent_px_master$REGION_OF_ORIGIN[ghent_px_master$REGION_OF_ORIGIN == 10] <- "Western Europe"
-ghent_px_master$REGION_OF_ORIGIN[ghent_px_master$REGION_OF_ORIGIN == 20] <- "Western Europe"
-ghent_px_master$REGION_OF_ORIGIN[ghent_px_master$REGION_OF_ORIGIN == 21] <- "Sub-Saharan Africa"
-ghent_px_master$REGION_OF_ORIGIN[ghent_px_master$REGION_OF_ORIGIN == 22] <- "Latin America/Caribbean"
-ghent_px_master$REGION_OF_ORIGIN[ghent_px_master$REGION_OF_ORIGIN == 30] <- "Latin America/Caribbean"
-ghent_px_master$REGION_OF_ORIGIN[ghent_px_master$REGION_OF_ORIGIN == 40] <- "Asia"
-ghent_px_master$REGION_OF_ORIGIN[ghent_px_master$REGION_OF_ORIGIN == 50] <- "North America"
-ghent_px_master$REGION_OF_ORIGIN[ghent_px_master$REGION_OF_ORIGIN == 97] <- "Other/unknown"
-ghent_px_master$REGION_OF_ORIGIN[ghent_px_master$REGION_OF_ORIGIN == 99] <- "Other/unknown"
+ghent_master$REGION_OF_ORIGIN[ghent_master$REGION_OF_ORIGIN == 10] <- "Western Europe"
+ghent_master$REGION_OF_ORIGIN[ghent_master$REGION_OF_ORIGIN == 20] <- "Western Europe"
+ghent_master$REGION_OF_ORIGIN[ghent_master$REGION_OF_ORIGIN == 21] <- "Sub-Saharan Africa"
+ghent_master$REGION_OF_ORIGIN[ghent_master$REGION_OF_ORIGIN == 22] <- "Latin America/Caribbean"
+ghent_master$REGION_OF_ORIGIN[ghent_master$REGION_OF_ORIGIN == 30] <- "Latin America/Caribbean"
+ghent_master$REGION_OF_ORIGIN[ghent_master$REGION_OF_ORIGIN == 40] <- "Asia"
+ghent_master$REGION_OF_ORIGIN[ghent_master$REGION_OF_ORIGIN == 50] <- "North America"
+ghent_master$REGION_OF_ORIGIN[ghent_master$REGION_OF_ORIGIN == 97] <- "Other/unknown"
+ghent_master$REGION_OF_ORIGIN[ghent_master$REGION_OF_ORIGIN == 99] <- "Other/unknown"
 
-################## Ghent LTFU -----------
+names(ghent_master)[5] <- "TRANSMISSION"
 
-ghent_LTFU <- subset(ghent_px_master, status == "LTFU")
-ghent_not_LTFU <- subset(ghent_px_master, status == "Follow up")
-ghent_FU_all <- subset(ghent_px_master, status != "LTFU")
+#### Ghent years on ART -------
 
-mean(ghent_LTFU$age, na.rm=TRUE)
-mean(ghent_not_LTFU$age, na.rm=TRUE)
+ghent_master$art_duration_weeks <- difftime(ghent_master$sys_date, ghent_master$START_DATE_ART, 
+                                          units="weeks")
 
-ghent_not_LTFU$MOST_RECENT_CD4 <- as.character(ghent_not_LTFU$MOST_RECENT_CD4)
-ghent_not_LTFU$MOST_RECENT_CD4 <- as.numeric(ghent_not_LTFU$MOST_RECENT_CD4)
+ghent_master$art_duration_months <- (ghent_master$art_duration_weeks)/4.348125 
 
-mean(ghent_not_LTFU$MOST_RECENT_CD4, na.rm=TRUE)
+ghent_master$art_duration_years <- (ghent_master$art_duration_months)/12
+ghent_master$art_duration_years <- as.numeric(ghent_master$art_duration_years)
+ghent_master$art_duration_years[is.na(ghent_master$art_duration_years)] <- 0
+ghent_master$started_trt <- ifelse(ghent_master$art_duration_years > 0, 1, 0)
 
 ################### Ghent NICM ------------
 
-#subset AC and HL
-ghent_AC <- subset(ghent_not_LTFU, AC == 1)
-ghent_HL <- subset(ghent_not_LTFU, HL == 1)
-
 ghent_hepc <- subset(ghent_px1, HCVRNA_AT.EVENT == "POS")
-ghent_hepc_not_LTFU <- comb_F(ghent_hepc, ghent_not_LTFU)
+ghent_hepc$hcv <- 1
+ghent_hepc <- ghent_hepc[, c(1, ncol(ghent_hepc))]
 
+ghent_master <- comb(ghent_hepc, ghent_master)
 
-ghent_not_LTFU$CVD <- ghent_not_LTFU$MI + ghent_not_LTFU$STROKE + ghent_not_LTFU$ICP
-ghent_CVD_not_LTFU <- subset(ghent_not_LTFU, CVD == 1)
+ghent_master <- comb(ghent_master, ghent_ICP)
 
-ghent_dia_not_LTFU <- subset(ghent_not_LTFU, DIABETES == 1)
+ghent_master$ICP <- as.numeric(ghent_master$ICP)
 
-########## Ghent hyp -------
+ghent_master$cvd <- ghent_master$MI + ghent_master$STROKE + ghent_master$ICP
 
-names(ghent_events)[2] <- "OUTCOME"
-table(ghent_events$OUTCOME)
-ghent_events_not_LTFU <- comb_F(ghent_events, ghent_not_LTFU)
+#remove unneeded cols
 
-ghent_hyp_not_LTFU <- subset(ghent_events_not_LTFU, OUTCOME == 6)
-105/907
+ghent_master2 <- subset(ghent_master, select = -c(FRACTURES, MI, STROKE, HYPERTENSION, HYPERCHOLESTEROLAEMIA, 
+                                                  ICP, X, NHL, COUNT_OUTCOME, MOST_RECENT_VIT_D_BLOOD_LEVEL..ng.mL., 
+                                                  CC, LOST_TO_FOLLOW_UP))
+colnames(ghent_master2)[c(12, 13, 15:17)] <- c("ckd", "dia", "hl", "lung", "ac")
+ghent_master2$liver <- 0
 
-######### Ghent years on ART ---------
+ghent_master2 <- varto0(ghent_master2)
+ghent_master2 <- binning_ages(ghent_master2)
 
-#this needs to be fixed
+ghent_master2$MOST_RECENT_CD4 <- as.character(ghent_master2$MOST_RECENT_CD4)
+ghent_master2$MOST_RECENT_CD4 <- as.numeric(ghent_master2$MOST_RECENT_CD4)
 
-ghent_date_diff <-read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/HIV/Data/Belgium/Ghent/Ghent_date_calcs.csv', header = T, stringsAsFactors = FALSE)
-ghent_date_diff$date_diff_y <- as.numeric(ghent_date_diff$date_diff_y)
+################## Ghent LTFU -----------
 
-ghent_date_diff_not_LTFU <- comb_F(ghent_date_diff, ghent_not_LTFU)
-mean(ghent_date_diff_not_LTFU$date_diff_y, na.rm=TRUE)
+ghent_FU_all <- subset(ghent_master2, LAST_VISIT_DATE > as.Date("2014-05-31"))
 
+ghent_not_LTFU <- subset(ghent_FU_all, DEATH == 0)
 
+ghent_LTFU <- subset(ghent_master2, LAST_VISIT_DATE < as.Date("2014-06-01"))
+
+ghent_dead <- subset(ghent_FU_all, DEATH == 1)
 
 ################# all sites mortality ----------------------
 
-#liege_master all are post 2012
-#pierre_dead is only recent
-#erasme_dead
-#ghent_px_master
+cvd_conting = matrix(c(3,22,132,4755), nrow = 2)
+fisher.test(cvd_conting)
 
-#change the age col name in ghent so the function can be used
-ghent_px_master <- binning_ages(ghent_px_master)
-names(erasme_master)[5] <- "age"
-erasme_master <- binning_ages(erasme_master)
+renal_conting = matrix(c(7,24,451,5337), nrow = 2)
+fisher.test(renal_conting)
 
-erasme_dead <- subset(erasme_master, status == "Death")
-ghent_dead <- subset(ghent_px_master, status == "Death")
-liege_dead <- subset(liege_master, STATUS == "Death")
-pierre_dead <- subset(pierre_px_recent, DEATH == "1")
+dia_conting = matrix(c(5,20,344,5444), nrow = 2)
+fisher.test(dia_conting)
 
-pierre_dead <- binning_ages(pierre_dead)
-erasme_dead <- binning_ages(erasme_dead)
-ghent_dead <- binning_ages(ghent_dead)
+hcv_conting = matrix(c(7,24,96,5692), nrow = 2)
+fisher.test(hcv_conting)
 
-###calculate person years
-#erasme
-erasme_dead$Seroconversion.date.or.first.contact.with.AIDS.center.if.seroconversion.date.unknown <- as.Date(erasme_dead$Seroconversion.date.or.first.contact.with.AIDS.center.if.seroconversion.date.unknown, format = "%d-%m-%Y")
-names(erasme_dead)[2] <- "DTE_START_STUDY"
-erasme_dead_2014 <- subset(erasme_dead, DEATH_Date > "2014-05-31")
-
-liege_dead$DEATH_DATE <- as.Date(liege_dead$DEATH_DATE, format = "%m/%d/%Y")
-liege_dead_2014 <- subset(liege_dead, DEATH_DATE > "2014-05-31")
-
-pierre_dead$DTE_START_STUDY <- as.Date(pierre_dead$DTE_START_STUDY, format = "%m/%d/%Y")
-pierre_dead_2014 <- subset(pierre_dead, DTE_END_STUDY > "2014-05-31")
-
-names(ghent_dead)[7] <- "DTE_START_STUDY"
-ghent_dead$DTE_START_STUDY <- as.Date(as.character(ghent_dead$DTE_START_STUDY, format = "%m/%d/%Y"))
-ghent_dead_2014 <- subset(ghent_dead, DATE_DEATH > "2014-05-31")
-ghent_dead_2014 <- as.data.frame(ghent_dead_2014)
+#polypathologies?
 
 
-#ghent_px_master
-#make new df that combined dead with not LTFU
-names(ghent_FU_all)[3] <- "age"
-erasme_FU_all <- binning_ages(erasme_FU_all)
-ghent_FU_all <- binning_ages(ghent_FU_all)
-liege_FU_all <- binning_ages(liege_FU_all)
-pierre_FU_all <- binning_ages(pierre_FU_all)
+hcv_conting = matrix(c(7,24,96,5692), nrow = 2)
+fisher.test(hcv_conting)
 
-#stack overflow
-liege_dead_2014$person_months <- round(ifelse(liege_dead_2014$FIRST_VIS_DATE<as.Date("2014-05-31"), 
-                                              liege_dead_2014$DEATH_DATE-as.Date("2014-05-31"), liege_dead_2014$DEATH_DATE-liege_dead_2014$FIRST_VIS_DATE)/30, 2)
-incidence_death_liege <- (nrow(liege_dead_2014)/sum(liege_dead_2014$person_months))*100
-
-pierre_dead_2014$person_months <- round(ifelse(pierre_dead_2014$DTE_START_STUDY<as.Date("2014-05-31"), 
-                                               pierre_dead_2014$DTE_END_STUDY-as.Date("2014-05-31"), pierre_dead_2014$DTE_END_STUDY-pierre_dead_2014$DTE_START_STUDY)/30, 2)
-incidence_death_pierre <- (nrow(pierre_dead_2014)/sum(pierre_dead_2014$person_months, na.rm=TRUE))*100
-
-
-erasme_dead_2014$person_months <- round(ifelse(erasme_dead_2014$DTE_START_STUDY<as.Date("2014-05-31"), 
-                                               erasme_dead_2014$DEATH_Date-as.Date("2014-05-31"), erasme_dead_2014$DEATH_Date-erasme_dead_2014$DTE_START_STUDY)/30, 2)
-incidence_death_erasme <- (nrow(erasme_dead_2014)/sum(erasme_dead_2014$person_months, na.rm=TRUE))*100
-
-
-ghent_dead_2014$person_months <- round(ifelse(ghent_dead_2014$DTE_START_STUDY<as.Date("2014-05-31"), 
-                                              ghent_dead_2014$DATE_DEATH-as.Date("2014-05-31"), ghent_dead_2014$DATE_DEATH-ghent_dead_2014$DTE_START_STUDY)/30, 2)
-incidence_death_ghent <- (nrow(ghent_dead_2014)/sum(ghent_dead_2014$person_months, na.rm=TRUE))*100
-
-#########
-
+#####
 
 tab <- function(df) {
   base <- as.data.frame(table(age_binned = df$age_binned))
   base
 }
 
-#erasme needs age_binned
-erasme_FU_all$AGE <- as.numeric(erasme_FU_all$AGE)
-names(erasme_FU_all)[5] <- "age"
-erasme_FU_all <- binning_ages(erasme_FU_all)
-
 pierre_tab <- tab(pierre_FU_all)
-pierre_tab_death <- tab(pierre_dead_2014)
+pierre_tab_death <- tab(pierre_dead)
 liege_tab <- tab(liege_FU_all)
-liege_tab_death <- tab(liege_dead_2014)
+liege_tab_death <- tab(liege_dead)
 erasme_tab <- tab(erasme_FU_all)
-erasme_tab_death <- tab(erasme_dead_2014)
+erasme_tab_death <- tab(erasme_dead)
 ghent_tab <- tab(ghent_FU_all)
-ghent_tab_death <- tab(ghent_dead_2014)
+ghent_tab_death <- tab(ghent_dead)
 
 
 avg_pops_df <- as.data.frame(cbind(liege_tab[1], liege_tab$Freq, pierre_tab$Freq, 
                                    erasme_tab$Freq, ghent_tab$Freq))
-
-avg_pm_df <- as.data.frame(cbind(liege_tab[1], liege_tab_death_pm$person_months, pierre_tab_death_pm$person_months,
-                                 erasme_tab_death_pm$person_months, ghent_tab_death_pm$person_months))
 
 total_deaths_df <- as.data.frame(cbind(liege_tab[1], liege_tab_death$Freq, pierre_tab_death$Freq, 
                                        erasme_tab_death$Freq, ghent_tab_death$Freq))
@@ -1209,22 +1032,13 @@ total_deaths_df <- as.data.frame(cbind(liege_tab[1], liege_tab_death$Freq, pierr
 
 colnames(avg_pops_df)[c(1:5)] <- (c("Age_groups", "Liege", "St. Pierre", "Erasme", "Ghent"))
 colnames(total_deaths_df)[c(1:5)] <- (c("Age_groups", "Liege", "Pierre", "Erasme", "Ghent"))
-colnames(avg_pm_df)[c(1:5)] <- (c("Age_groups", "Liege", "St. Pierre", "Erasme", "Ghent"))
 
+write.xlsx(total_deaths_df, "/Users/cda/Desktop/total_deaths_df.xlsx")
+write.xlsx(avg_pops_df, "/Users/cda/Desktop/avg_pops_df.xlsx")
+#graph it 
+#bring it back
 
-avg_pops_df$avg <- (rowMeans(avg_pops_df[,-1]))
-total_deaths_df$avg <- (rowMeans(total_deaths_df[2:5]))
-total_deaths_df$sum <- rowSums(total_deaths_df[2:5])
-avg_pops_df$sum <- rowSums(avg_pops_df[2:5])
-avg_pm_df$sum <- rowSums(avg_pm_df[2:5], na.rm=TRUE)
-
-#add a percentage after the sum column out of total in total_deaths_df
-total_deaths_df$proportion <- (total_deaths_df$sum/(sum(total_deaths_df$sum)))*100
-total_deaths_df$proportion_liege <- (total_deaths_df$Liege/(sum(total_deaths_df$Liege)))*100
-total_deaths_df$proportion_pierre <- (total_deaths_df$Pierre/(sum(total_deaths_df$Pierre)))*100
-total_deaths_df$proportion_ghent <- (total_deaths_df$Ghent/(sum(total_deaths_df$Ghent)))*100
-total_deaths_df$proportion_erasme <- (total_deaths_df$Erasme/(sum(total_deaths_df$Erasme)))*100
-
+new_crude_df_fixed <- read.csv('/Users/cda/Desktop/new_crude_df.csv', header = T, na.strings=c(""))
 
 ######### crudge rates
 #make crude and adjusted rates
@@ -1233,14 +1047,17 @@ pierre_tab$crude <- (pierre_tab_death$Freq/pierre_tab$Freq)*1000
 erasme_tab$crude <- (erasme_tab_death$Freq/erasme_tab$Freq)*1000
 ghent_tab$crude <- (ghent_tab_death$Freq/ghent_tab$Freq)*1000
 
+avg_pops_df$avg <- (rowMeans(avg_pops_df[,-1]))
+total_deaths_df$avg <- (rowMeans(total_deaths_df[2:5]))
+total_deaths_df$sum <- rowSums(total_deaths_df[2:5])
+avg_pops_df$sum <- rowSums(avg_pops_df[2:5])
+
 liege_tab$adj <- (liege_tab_death$Freq/avg_pops_df$avg)*1000
 pierre_tab$adj <- (pierre_tab_death$Freq/avg_pops_df$avg)*1000
 erasme_tab$adj <- (erasme_tab_death$Freq/avg_pops_df$avg)*1000
 ghent_tab$adj <- (ghent_tab_death$Freq/avg_pops_df$avg)*1000
 
 total_deaths_df$total <- (total_deaths_df$avg/avg_pops_df$avg)*1000
-
-pierre_tab$crude, erasme_tab$crude, ghent_tab$crude))
 
 mortal_tabs <- as.data.frame(cbind(liege_tab[1], liege_tab$adj, pierre_tab$adj, erasme_tab$adj, ghent_tab$adj, total_deaths_df$total))
 colnames(mortal_tabs)[c(1:6)] <- c("Age", "Liege", "St. Pierre", "Erasme", "Ghent", "All")
@@ -1253,350 +1070,35 @@ standardized_mortality <- ggplot(data=mortal_tabs_long,
   geom_line(size=1.5) + ylab("Mortality rate per 1000") + ggtitle("Age-adjusted standardized mortality rates by cohort")
 
 
+new_crude_df_fixed$Age <- factor(new_crude_df_fixed$Age, levels = new_crude_df_fixed$Age)
 
-################ gendered mortality ----------------
-
-### subset the dead_2014 data frames to m or f
-#need to make this look better later
-male_func <- function(df) {
-  df_new <- subset(df, GENDER == "Male")
-  df_new
-}
-
-female_func <- function(df) {
-  df_new <- subset(df, GENDER == "Female")
-  df_new
-}
-
-
-pierre_FU_male <- male_func(pierre_FU_all)
-pierre_FU_female <- female_func(pierre_FU_all)
-
-pierre_dead_2014_female <- female_func(pierre_dead_2014_female)
-pierre_dead_2014_male <- male_func(pierre_dead_2014_male)
-
-
-liege_FU_female <- female_func(liege_FU_all)
-liege_FU_male <- male_func(liege_FU_all)
-liege_dead_2014_female <- female_func(liege_dead_2014)
-liege_dead_2014_male <- male_func(liege_dead_2014)
-
-erasme_FU_female <- female_func(erasme_FU_all)
-erasme_FU_male <- male_func(erasme_FU_all)
-erasme_dead_2014_female <- female_func(erasme_dead_2014)
-erasme_dead_2014_male <- male_func(erasme_dead_2014)
-
-ghent_FU_female <- female_func(ghent_FU_all)
-ghent_FU_male <- male_func(ghent_FU_all)
-ghent_dead_2014_female <- female_func(ghent_dead_2014)
-ghent_dead_2014_male <- male_func(ghent_dead_2014)
-
-pierre_tab_female <- tab(pierre_FU_female)
-pierre_tab_male <- tab(pierre_FU_male)
-pierre_tab_death_female <- tab(pierre_dead_2014_female)
-pierre_tab_death_male <- tab(pierre_dead_2014_male)
-
-liege_tab_female <- tab(liege_FU_female)
-liege_tab_male <- tab(liege_FU_male)
-liege_tab_death_female <- tab(liege_dead_2014_female)
-liege_tab_death_male <- tab(liege_dead_2014_male)
-
-erasme_tab_female <- tab(erasme_FU_female)
-erasme_tab_male <- tab(erasme_FU_male)
-erasme_tab_death_female <- tab(erasme_dead_2014_female)
-erasme_tab_death_male <- tab(erasme_dead_2014_male)
-
-ghent_tab_female <- tab(ghent_FU_female)
-ghent_tab_male <- tab(ghent_FU_male)
-ghent_tab_death_female <- tab(ghent_dead_2014_female)
-ghent_tab_death_male <- tab(ghent_dead_2014_male)
-
-
-avg_pops_df_female <- as.data.frame(cbind(liege_tab[1], liege_tab_female$Freq, pierre_tab_female$Freq, 
-                                          erasme_tab_female$Freq, ghent_tab_female$Freq))
-
-avg_pops_df_male <- as.data.frame(cbind(liege_tab[1], liege_tab_male$Freq, pierre_tab_male$Freq, 
-                                        erasme_tab_male$Freq, ghent_tab_male$Freq))
-
-total_deaths_df_female <- as.data.frame(cbind(liege_tab[1], liege_tab_death_female$Freq, pierre_tab_death_female$Freq, 
-                                              erasme_tab_death_female$Freq, ghent_tab_death_female$Freq))
-
-total_deaths_df_male <- as.data.frame(cbind(liege_tab[1], liege_tab_death_male$Freq, pierre_tab_death_male$Freq, 
-                                            erasme_tab_death_male$Freq, ghent_tab_death_male$Freq))
-
-colnames(avg_pops_df_female)[c(1:5)] <- (c("Age_groups", "Liege", "St. Pierre", "Erasme", "Ghent"))
-colnames(avg_pops_df_male)[c(1:5)] <- (c("Age_groups", "Liege", "St. Pierre", "Erasme", "Ghent"))
-
-colnames(total_deaths_df_female)[c(1:5)] <- (c("Age_groups", "Liege", "Pierre", "Erasme", "Ghent"))
-colnames(total_deaths_df_male)[c(1:5)] <- (c("Age_groups", "Liege", "Pierre", "Erasme", "Ghent"))
-
-
-avg_pops_df_female$avg <- (rowMeans(avg_pops_df_female[,-1]))
-avg_pops_df_male$avg <- (rowMeans(avg_pops_df_male[,-1]))
-
-avg_pops_df_female$sum <- (rowSums(avg_pops_df_female[2:5]))
-avg_pops_df_male$sum <- (rowSums(avg_pops_df_male[2:5]))
-
-total_deaths_df_female$sum <- (rowSums(total_deaths_df_female[2:5]))
-total_deaths_df_male$sum <- (rowSums(total_deaths_df_male[2:5]))
-
-total_deaths_df_female$crude <- (total_deaths_df_female$sum/avg_pops_df_female$sum)*1000
-total_deaths_df_male$crude <- (total_deaths_df_male$sum/avg_pops_df_male$sum)*1000
-
-total_deaths_df$crude <- (total_deaths_df$sum/avg_pops_df$sum)*1000
-
-#combine the datasets
-
-names(total_deaths_df_female)[7] <- "Female"
-names(total_deaths_df_male)[7] <- "Male"
-names(total_deaths_df)[14] <- "All"
-
-combined_MF <- merge(total_deaths_df_female, total_deaths_df_male, by = "Age_groups")
-combined_MF <- combined_MF[, -c(2:6)]
-combined_MF <- combined_MF[, -c(3:7)]
-
-combined_MF <- merge(combined_MF, total_deaths_df, by= "Age_groups")
-combined_MF <- combined_MF[, -c(4:15)]
-
-#find rowsums for >65, combine
-above_65 <- rowSums(total_deaths_df[, c(14:19)])
-
-
-comb_tabs_long <- melt(combined_MF, id="Age_groups")  # convert to long format
-names(comb_tabs_long)[2] <- "Gender"
-
-comb_tabs_long <- melt(combined_MF_new, id="Age_groups")  # convert to long format
-names(comb_tabs_long)[2] <- "Gender"
-
-gender_mortality <- ggplot(data=comb_tabs_long, aes(x=Age_groups, y=value, group = Gender, colour=Gender)) +
-  geom_line(size=1.5, alpha = 0.4) + ylab("Mortality rate per 1000") + 
-  xlab("Age groups") +
-  ggtitle("Age-adjusted crude mortality rates by gender") + 
-  theme(legend.position = "bottom", plot.title = element_text(size = 30, face="bold"))
-
-
-total_deaths_df$proportion <- (total_deaths_df$sum/(sum(total_deaths_df$sum)))*100
-
-#make a graph of proportions of deaths
-proportion_mortality <- ggplot(data=total_deaths_df,aes(x=Age_groups, y=proportion, group=1)) +
-  geom_line(size=1.5) + xlab("Age groups") +
-  ylab("Percentage of total deaths") +
-  ggtitle("Proportion of total deaths by age group") +
-  theme(plot.title = element_text(size = 30, face = "bold"))
-
-#using this graph for the poster
-grid.arrange(gender_mortality, proportion_mortality)
-
-
-
-total_deaths_df$sum <- rowSums(total_deaths_df[2:5])
-avg_pops_df$sum <- rowSums(avg_pops_df[2:5])
-
-
-
-############# mortality by under and over 55 ------
-
-
-young_func <- function(df) {
-  young_df <- subset(df, age <= 55)
-  young_df
-}
-
-old_func <- function(df) {
-  old_df <- subset(df, age > 55)
-  old_df
-}
-
-pierre_FU_young <- young_func(pierre_FU_all)
-pierre_dead_young <- young_func(pierre_dead_2014)
-liege_FU_young <- young_func(liege_FU_all)
-liege_dead_young <- young_func(liege_dead_2014)
-erasme_FU_young <- young_func(erasme_FU_all)
-erasme_dead_young <- young_func(erasme_dead_2014)
-ghent_FU_young <- young_func(ghent_FU_all)
-ghent_dead_young <- young_func(ghent_dead_2014)
-
-pierre_FU_old <- old_func(pierre_FU_all)
-pierre_dead_old <- old_func(pierre_dead_2014)
-liege_FU_old <- old_func(liege_FU_all)
-liege_dead_old <- old_func(liege_dead_2014)
-erasme_FU_old <- old_func(erasme_FU_all)
-erasme_dead_old <- old_func(erasme_dead_2014)
-ghent_FU_old <- old_func(ghent_FU_all)
-ghent_dead_old <- old_func(ghent_dead_2014)
-
-pierre_tab_young <- tab(pierre_FU_young)
-pierre_tab_death_young <- tab(pierre_dead_young)
-
-liege_tab_young <- tab(liege_FU_young)
-liege_tab_death_young <- tab(liege_dead_young)
-
-erasme_tab_young <- tab(erasme_FU_young)
-erasme_tab_death_young <- tab(erasme_dead_young)
-
-ghent_tab_young <- tab(ghent_FU_young)
-ghent_tab_death_young <- tab(ghent_dead_young)
-
-#old
-
-pierre_tab_old <- tab(pierre_FU_old)
-pierre_tab_death_old <- tab(pierre_dead_old)
-
-liege_tab_old <- tab(liege_FU_old)
-liege_tab_death_old <- tab(liege_dead_old)
-
-erasme_tab_old <- tab(erasme_FU_old)
-erasme_tab_death_old <- tab(erasme_dead_old)
-
-ghent_tab_old <- tab(ghent_FU_old)
-ghent_tab_death_old <- tab(ghent_dead_old)
-
-avg_pops_df_young <- as.data.frame(cbind(liege_tab[1], liege_tab_young$Freq, pierre_tab_young$Freq, 
-                                         erasme_tab_young$Freq, ghent_tab_young$Freq))
-
-avg_pops_df_old <- as.data.frame(cbind(liege_tab[1], liege_tab_old$Freq, pierre_tab_old$Freq, 
-                                       erasme_tab_old$Freq, ghent_tab_old$Freq))
-
-total_deaths_df_young <- as.data.frame(cbind(liege_tab[1], liege_tab_death_young$Freq, pierre_tab_death_young$Freq, 
-                                             erasme_tab_death_young$Freq, ghent_tab_death_young$Freq))
-
-total_deaths_df_old <- as.data.frame(cbind(liege_tab[1], liege_tab_death_old$Freq, pierre_tab_death_old$Freq, 
-                                           erasme_tab_death_old$Freq, ghent_tab_death_old$Freq))
-
-colnames(avg_pops_df_young)[c(1:5)] <- (c("Age_groups", "Liege", "St. Pierre", "Erasme", "Ghent"))
-colnames(avg_pops_df_old)[c(1:5)] <- (c("Age_groups", "Liege", "St. Pierre", "Erasme", "Ghent"))
-
-colnames(total_deaths_df_young)[c(1:5)] <- (c("Age_groups", "Liege", "Pierre", "Erasme", "Ghent"))
-colnames(total_deaths_df_old)[c(1:5)] <- (c("Age_groups", "Liege", "Pierre", "Erasme", "Ghent"))
-
-
-avg_pops_df_young$avg <- (rowMeans(avg_pops_df_young[,-1]))
-avg_pops_df_old$avg <- (rowMeans(avg_pops_df_old[,-1]))
-
-avg_pops_df_young$sum <- (rowSums(avg_pops_df_young[2:5]))
-avg_pops_df_old$sum <- (rowSums(avg_pops_df_old[2:5]))
-
-total_deaths_df_young$sum <- (rowSums(total_deaths_df_young[2:5]))
-total_deaths_df_old$sum <- (rowSums(total_deaths_df_old[2:5]))
-
-total_deaths_df_young$crude <- (total_deaths_df_young$sum/avg_pops_df_young$sum)*1000
-total_deaths_df_old$crude <- (total_deaths_df_old$sum/avg_pops_df_old$sum)*1000
-
-names(total_deaths_df_young)[7] <- "young"
-names(total_deaths_df_old)[7] <- "old"
-
-combined_YO <- merge(total_deaths_df_young, total_deaths_df_old, by = "Age_groups")
-combined_YO <- combined_YO[, -c(2:6)]
-combined_YO <- combined_YO[, -c(3:7)]
-
-comb_YO_tabs_long <- melt(combined_YO, id="Age_groups")  # convert to long format
-names(comb_tabs_long)[2] <- "Gender"
-
-#sum
-total_deaths_young_sum <- sum(total_deaths_df_young$sum, na.rm=TRUE)
-total_pop_young_sum <- sum(avg_pops_df_young$sum, na.rm=TRUE)
-
-total_deaths_old_sum <- sum(total_deaths_df_old$sum, na.rm=TRUE)
-total_pop_old_sum <- sum(avg_pops_df_old$sum, na.rm=TRUE)
-
-total_young_crude <- (total_deaths_young_sum/total_pop_young_sum)
-total_old_crude <- (total_deaths_old_sum/total_pop_old_sum)
-
-#####
-#try it with age as a continuous variable
-
-tab_cont <- function(df) {
-  base <- as.data.frame(table(age = df$age))
-  base
-}
-
-liege_tab_cont <- tab_cont(liege_FU_all)
-pierre_tab_cont <- tab_cont(pierre_FU_all)
-erasme_tab_cont <- tab_cont(erasme_FU_all)
-ghent_tab_cont <- tab_cont(ghent_FU_all)
-
-liege_tab_death_cont <- tab_cont(liege_dead_2014)
-pierre_tab_death_cont <- tab_cont(pierre_dead_2014)
-erasme_tab_death_cont <- tab_cont(erasme_dead_2014)
-ghent_tab_death_cont <- tab_cont(ghent_dead_2014)
-
-
-rbind(pierre_tab_death_cont$age, new_row)
-
-old_comb <- function(site_tab_cont) {
-  site_tab_cont$age <- as.character(site_tab_cont$age)
-  site_tab_cont$age <- as.numeric(site_tab_cont$age)
-  tab_65 <- subset(site_tab_cont, age >= 66)
-  tab_65_sum <- sum(tab_65$Freq)
-  df_new <- site_tab_cont
-  df_new$Freq[df_new$age == 66] <- tab_65_sum
-  df_new
-}
-
-
-
-pierre_comb_65 <- old_comb(pierre_tab_cont)
-liege_comb_65 <- old_comb(liege_tab_cont)
-erasme_comb_65 <- old_comb(erasme_tab_cont)
-ghent_comb_65 <- old_comb(ghent_tab_cont)
-
-pierre_comb_death_65 <- old_comb(pierre_tab_death_cont)
-liege_comb_death_65 <- old_comb(liege_tab_death_cont)
-erasme_comb_death_65 <- old_comb(erasme_tab_death_cont)
-ghent_comb_death_65 <- old_comb(ghent_tab_death_cont)
-
-pierre_comb_65 <- pierre_comb_65[!(pierre_comb_65$age >66),]
-liege_comb_65 <- liege_comb_65[!(liege_comb_65$age >66),]
-erasme_comb_65 <- erasme_comb_65[!(erasme_comb_65$age >66),]
-ghent_comb_65 <- ghent_comb_65[!(ghent_comb_65$age >66),]
-
-comb_comb_65_tmp <- merge(liege_comb_65, pierre_comb_65, by="age", all=TRUE)
-comb_comb_65_tmp2 <- merge(comb_comb_65_tmp, erasme_comb_65, by="age", all=TRUE)
-colnames(comb_comb_65_tmp2)[c(2:3)] <- c("liege", "pierre")
-comb_comb_65 <- merge(comb_comb_65_tmp2, ghent_comb_65, by="age", all=TRUE)
-colnames(comb_comb_65)[c(4:5)] <- c("erasme", "ghent")
-comb_comb_65$sum <- rowSums(comb_comb_65[2:5], na.rm=TRUE)
-
-#now deaths
-
-comb_comb_65_death_tmp <- merge(liege_comb_death_65, pierre_comb_death_65, by="age", all=TRUE)
-comb_comb_65_death_tmp2 <- merge(comb_comb_65_death_tmp, erasme_comb_death_65, by="age", all=TRUE)
-colnames(comb_comb_65_death_tmp2)[c(2:3)] <- c("liege", "pierre")
-comb_comb_65_death <- merge(comb_comb_65_death_tmp2, ghent_comb_death_65, by="age", all=TRUE)
-colnames(comb_comb_65_death)[c(4:5)] <- c("erasme", "ghent")
-comb_comb_65_death$sum <- rowSums(comb_comb_65_death[2:5], na.rm=TRUE)
-
-deaths_65 <- subset(comb_comb_65_death, age >= 66)
-deaths_65_sum <- sum(deaths_65$sum)
-
-#rename 69 in the age col in comb_comb_65_death to be 66
-comb_comb_65_death[26, 1] = 66
-comb_comb_65_death[26, 6] = 2
-comb_comb_65_death <- comb_comb_65_death[!(comb_comb_65_death$age > 66),]
-
-drops <- c("liege", "pierre", "erasme", "ghent")
-comb_comb_65 <- comb_comb_65[, !names(comb_comb_65) %in% drops]
-comb_comb_65_death <- comb_comb_65_death[, !names(comb_comb_65_death) %in% drops]
-
-new_death_df <- merge(comb_comb_65, comb_comb_65_death, by="age", all=TRUE)
-new_death_df[is.na(new_death_df)] <- 0
-colnames(new_death_df)[c(2:3)] <- c("pop", "deaths")
-new_death_df$crude <- (new_death_df$deaths/new_death_df$pop)*1000
-
-#need to bin age groups 
-#just going to export to excel right now
-library(xlsx)
-write.xlsx(new_death_df, "/Users/cda/Desktop/new_death_df.xlsx")
-#graph it 
-#bring it back
-
-new_death_df_fixed <- read.csv('/Users/cda/Desktop/new_death_fixed.csv', header = T, na.strings=c(""))
-
-new_graph_over_66 <- ggplot(data=new_death_df_fixed, aes(x=Age, y=Crude, group = 1)) +
+#poster graph, updated with new Ghent death data
+new_graph_over_66 <- ggplot(data=new_crude_df_fixed, aes(x=Age, y=crude_mortality, group = 1)) +
   geom_line(size=1.5) + ylab("Mortality rate per 1000") + 
   xlab("Age groups") +
   ggtitle("Age-adjusted crude mortality rates") + 
   theme(legend.position = "bottom", plot.title = element_text(size = 30, face="bold"))
+
+######## Look closer at 51-55
+
+deaths_51 <- function(df) {
+  new_df <- subset(df, age_binned == "51-55")
+  new_df
+}
+
+erasme_51 <- deaths_51(erasme_dead)
+liege_51 <- deaths_51(liege_dead)
+pierre_51 <- deaths_51(pierre_dead)
+ghent_51 <- deaths_51(ghent_dead)
+
+#merge just hcv_yes from pierre_events_recent with dead
+dead_hep_tmp <- pierre_events_recent[c(1, 115)]
+#make the patient IDs integers
+dead_hep_tmp$PATIENT_ID <- as.integer(dead_hep_tmp$PATIENT_ID)
+dead_hep <- merge(dead_hep_tmp, pierre_dead, by="PATIENT_ID", all=FALSE)
+
+#pierre dead under 60
+pierre_60 <- subset(pierre_dead, age < 61)
 
 ################ combined mortality graph--------------
 
@@ -1659,21 +1161,6 @@ table(pierre_smoke_not_LTFU$var_yes)
 
 #histograms
 
-names(erasme_not_LTFU)[5] <- "age"
-names(erasme_LTFU)[5] <- "age"
-
-names(ghent_not_LTFU)[3] <- "age"
-names(ghent_LTFU)[3] <- "age"
-
-liege_LTFU <- subset(liege_LTFU, STATUS == "Contact lost")
-mean(liege_LTFU$age)
-
-erasme_LTFU <- subset(erasme_master,status == "LTFU")
-mean(erasme_LTFU$age)
-
-ghent_LTFU <- subset(ghent_px_master,status == "LTFU")
-mean(ghent_LTFU$age)
-
 pierre_LTFU_histo <- ggplot(pierre_not_LTFU, binwidth = 5, aes(x=age, stat="count")) + 
   geom_histogram(data=subset(pierre_not_LTFU,LTFU == 0),fill = "red", 
                  alpha = 0.4, binwidth = 5) +
@@ -1720,31 +1207,6 @@ ghent_LTFU_histo <- ggplot(ghent_not_LTFU, binwidth = 5, aes(x=age, stat="count"
 
 grid.arrange(pierre_LTFU_histo, liege_LTFU_histo, erasme_LTFU_histo, ghent_LTFU_histo)
 
-######## LTFU or transferred? -------------
-#post to Stack Overflow and come back to this
-#could merge by multiple variables
-
-#rename all the DOB columns to be able to merge
-names(ghent_px_master)[2] <- "DOB"
-names(erasme_master)[4] <- "DOB"
-names(liege_master2)[2] <- "DOB"
-
-#make sure they are all in date format
-erasme_LTFU$DOB <- as.Date(erasme_LTFU$DOB, format = "%d-%m-%Y")
-ghent_LTFU$DOB <- as.Date(ghent_LTFU$DOB, format = "%d-%m-%Y")
-
-trans <- c(pierre_LTFU$DOB, liege_not_LTFU$DOB)
-trans2 <- trans[duplicated(trans)]
-trans2 <- trans2[order(trans2)]
-trans_df <- data.frame(DOB = trans2)
-
-liege_not_LTFU_order <- liege_not_LTFU[order(liege_not_LTFU$DOB)]
-pierre_LTFU_order <- pierre_LTFU[order(pierre_LTFU$DOB),]
-
-transferred_pierre <- merge(liege_not_LTFU_order, trans_df, by = "DOB", all.y=FALSE)
-
-
-
 ####################### BMI Graphs ----------------------
 
 #create boxplots - BMI by gender
@@ -1779,12 +1241,9 @@ grid.arrange(liege_bmi, pierre_bmi, ncol=2)
 
 ######################################################### age distros ----
 
-erasme_not_LTFU <- binning_ages(erasme_not_LTFU)
-ghent_not_LTFU <- binning_ages(ghent_not_LTFU)
-pierre_not_LTFU <- binning_ages(pierre_not_LTFU)
 
 #combine all the ages for summary statistics
-ages_summary <- as.data.frame(c(liege_not_LTFU$age, ghent_not_LTFU$AGE, erasme_not_LTFU$AGE, 
+ages_summary <- as.data.frame(c(liege_not_LTFU$age, ghent_not_LTFU$age, erasme_not_LTFU$age, 
                                 pierre_not_LTFU$age))
 
 summary(ages_summary[1])
@@ -1940,84 +1399,77 @@ grid.arrange(all_box_age, arrangeGrob(liege_box_age , pierre_box_age, erasme_box
 
 
 ###################### Cohort summaries --------------------
+
 #Use the living patients not LTFU 
 
 #combine into one vector to get average recent CD4
-cd4_all <- c(ghent_not_LTFU$MOST_RECENT_CD4, erasme_not_LTFU$last.cd4_value,
-             liege_not_LTFU$CD4_RECENT, pierre_not_LTFU$cd4_recent)
+cd4_all <- list(ghent_not_LTFU$MOST_RECENT_CD4, erasme_not_LTFU$last.cd4_value, 
+                   liege_not_LTFU$CD4_RECENT, pierre_not_LTFU$recent_cd4)
+cd4_melt <- melt(cd4_all)
+mean(cd4_melt$value, na.rm=TRUE)
 
-cd4_nadir_all <- c(erasme_not_LTFU$cd4_nadir_v,
-                   liege_not_LTFU$CD4_NADIR, pierre_not_LTFU$cd4_nadir.x)
+#no nadir measurement for ghent
+cd4_nadir_all <- list(erasme_not_LTFU$cd4_nadir_v, 
+                liege_not_LTFU$CD4_NADIR, pierre_not_LTFU$cd4_nadir)
+cd4_nadir_melt <- melt(cd4_nadir_all)
 
-mean(cd4_all, na.rm=TRUE)
-mean(cd4_nadir_all, na.rm=TRUE)
+mean(cd4_nadir_melt$value, na.rm=TRUE)
 
-#change factors to characters
-pierre_not_LTFU$GENDER <- as.character(pierre_not_LTFU$GENDER)
-erasme_not_LTFU$GENDER <- as.character(erasme_not_LTFU$GENDER)
+#gender
+gender_all <- list(ghent_not_LTFU$GENDER, erasme_not_LTFU$GENDER, 
+                      liege_not_LTFU$GENDER, pierre_not_LTFU$GENDER)
+gender_melt <- melt(gender_all)
 
-sex_all <- data.frame(c(ghent_not_LTFU$GENDER, erasme_not_LTFU$GENDER, 
-                        liege_not_LTFU$GENDER, pierre_not_LTFU$GENDER))
-table(sex_all$c.ghent_not_LTFU.GENDER..erasme_not_LTFU.GENDER..liege_not_LTFU.GENDER..)
 ### combined % started treatment
 
-nrow(erasme_started_trt)
-nrow(liege_started_trt)
-table(pierre_started_trt$started_trt)
+started_trt_all <- list(erasme_not_LTFU$started_trt, 
+                      liege_not_LTFU$started_art, pierre_not_LTFU$started_trt_yes)
+started_trt_all_melt <- melt(started_trt_all)
 
-(2842+972+829)/(1006+3003+882)
+#combined years on ART
+
+years_on_ART_all <- list(erasme_not_LTFU$art_duration_years, 
+                        liege_not_LTFU$art_duration_years, ghent_not_LTFU$art_duration_years)
+years_on_ART_all <- melt(years_on_ART_all)
+#don't remove NA but make sure to do na.rm=TRUE in the mean calculation
+
+#combined hypertension
+
+#hypertension combined in a list DID NOT WORK
+#BUT WHYYYYYYYYY
+
+
+###### region of origin plots --------
 
 #combined region
-pierre_not_LTFU$REGION_OF_ORIGIN <- as.character(pierre_not_LTFU$REGION_OF_ORIGIN)
+region_all <- list(ghent_not_LTFU$REGION_OF_ORIGIN, erasme_not_LTFU$REGION_OF_ORIGIN, 
+                   liege_not_LTFU$REGION_OF_ORIGIN, pierre_not_LTFU$REGION_OF_ORIGIN)
+region_melt <- melt(region_all)
+table(region_melt$value)
 
-region_all <- data.frame(c(ghent_not_LTFU$REGION_OF_ORIGIN, erasme_not_LTFU$REGION_OF_ORIGIN, 
-                           liege_not_LTFU$REGION_OF_ORIGIN, pierre_not_LTFU$REGION_OF_ORIGIN), na.rm=TRUE)
+colnames(region_melt) <- c("Region", "Site")
+region_melt$Region <- gsub("Central America", "Latin America/Caribbean", region_melt$Region)
+region_melt$Region <- gsub("South America", "Latin America/Caribbean", region_melt$Region)
+region_melt$Region <- gsub("UNKNOWN", "Other/unknown", region_melt$Region)
+region_melt$Region <- gsub("Eastern Europe", "Europe", region_melt$Region)
+region_melt$Region <- gsub("Western Europe", "Europe", region_melt$Region)
+region_melt$Region <- gsub("Oceania Aust. NZ", "Other/unknown", region_melt$Region)
+region_melt$Region <- gsub("Unknown", "Other/unknown", region_melt$Region)
 
-names(region_all)[1] <- "REGION_OF_ORIGIN"
+region_melt$Region[is.na(region_melt$Region)] <- "Other/unknown"
 
-###### ethnic plots --------
+region_tab <- as.data.frame(table(region_melt$Region))
+region_tab$Proportion <- (region_tab$Freq/(sum(region_tab$Freq)))*100
+region_tab$Proportion <- round(region_tab$Proportion, 1)
+names(region_tab)[1] <- "Region"
 
-region_all$REGION_OF_ORIGIN <- gsub("Central America", "Latin America/Caribbean", region_all$REGION_OF_ORIGIN)
-region_all$REGION_OF_ORIGIN <- gsub("South America", "Latin America/Caribbean", region_all$REGION_OF_ORIGIN)
-region_all$REGION_OF_ORIGIN <- gsub("UNKNOWN", "Other/unknown", region_all$REGION_OF_ORIGIN)
-region_all$REGION_OF_ORIGIN <- gsub("Eastern Europe", "Europe", region_all$REGION_OF_ORIGIN)
-region_all$REGION_OF_ORIGIN <- gsub("Western Europe", "Europe", region_all$REGION_OF_ORIGIN)
-region_all$REGION_OF_ORIGIN <- gsub("Oceania Aust. NZ", "Other/unknown", region_all$REGION_OF_ORIGIN)
-region_all$REGION_OF_ORIGIN <- gsub("Unknown", "Other/unknown", region_all$REGION_OF_ORIGIN)
+#relevel the factor orders by proportion
+region_tab$Region <- factor(region_tab$Region, levels=region_tab[order(-region_tab$Proportion), "Region"])
 
-region_all <- ethnic_freq(region_all)
-region_all$Freq <- round(region_all$Freq, digits = 1)
-names(region_all)[1] <- "Region"
-
-region_all
-
-
-region_bar <- ggplot(region_all, aes(x=1, y=Freq, fill=Region)) +
-  geom_bar(stat="identity") +
-  ggtitle("Region of origin")
-
-y.breaks <- cumsum(region_all$Freq) - region_all$Freq/2
-
-region_pie <- ggplot(region_all, aes(x=1, y=Freq, fill=Region)) +
-  # black border around pie slices
-  geom_bar(stat="identity", color='black') +
-  # remove black diagonal line from legend
-  guides(fill=guide_legend(override.aes=list(colour=NA))) +
-  # polar coordinates
-  coord_polar(theta='y') +
-  # label aesthetics
-  theme(plot.title = element_text(size=30, face="bold"),
-        legend.text=element_text(size=15),
-        legend.title = element_blank(),
-        axis.ticks=element_blank(),  # the axis ticks
-        axis.title=element_blank(),  # the axis labels
-        axis.text.y=element_blank(), # the 0.75, 1.00, 1.25 labels
-        axis.text.x=element_text(color='black', size = 11)) + 
-  ggtitle("Region of origin") + 
-  scale_y_continuous(
-    breaks=y.breaks,
-    labels=region_all$Freq)
-
+region_bar <- ggplot(region_tab, aes(x=Region, y=Proportion)) +
+  geom_bar(stat="identity", fill="seagreen3") +
+  geom_text(aes(label=Proportion), position=position_dodge(width=0.9), vjust=-0.25) +
+  ggtitle("Region of origin") + theme(plot.title = element_text(size=30, face="bold"), axis.title.x = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1, size = 12))
 
 #########
 #Prevalence of NICMs by age 
@@ -2259,9 +1711,6 @@ ghent_50 <- subset(ghent_not_LTFU, AGE >= 50)
 pierre_50 <- subset(pierre_not_LTFU, age >= 50)
 erasme_50 <- subset(erasme_not_LTFU, AGE >= 50)
 liege_50 <- subset(liege_not_LTFU, age >= 50)
-
-
-
 
 pop_50 <-  (nrow(liege_50) + nrow(pierre_50) + nrow(erasme_50) + nrow(ghent_50))
 
