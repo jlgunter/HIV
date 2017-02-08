@@ -12,45 +12,46 @@ require(gridExtra)
 library(car)
 library(ggplot2)
 library(xlsx)
+library(psych)
 
 ####################### Read in files ----------------------
-liege_CD4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_3.csv', header = T, na.strings=c(""))
-liege_CD4_percent <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_PERCENT_3.csv', header = T, na.strings=c(""))
-liege_death <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_DEATH_3.csv', header = T, na.strings=c(""))
-liege_BAS <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_BAS_3.csv', header = T, na.strings=c(""), stringsAsFactors = FALSE)
-liege_CEP <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CEP_3.csv', header = T, na.strings=c(""))
-liege_artcodes <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/ART_standardization.csv', header = T, na.strings=c(""))
-liege_art <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_ART_3.csv', header = T, na.strings=c(""))
-liege_VL <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_RNA_3.csv', header = T, na.strings=c(""))
-liege_egfr <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_EGFR_3.csv', header = T, na.strings=c(""))
-liege_liver <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_LAB_VIRO_3.csv', header = T, na.strings=c(""))
-liege_hcv <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/HCV_only.csv', header = T, na.strings=c(""))
+liege_CD4 <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_3.csv', header = T, na.strings=c(""))
+liege_CD4_percent <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CD4_PERCENT_3.csv', header = T, na.strings=c(""))
+liege_death <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_DEATH_3.csv', header = T, na.strings=c(""))
+liege_BAS <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_BAS_3.csv', header = T, na.strings=c(""), stringsAsFactors = FALSE)
+liege_CEP <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_CEP_3.csv', header = T, na.strings=c(""))
+liege_artcodes <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/ART_standardization.csv', header = T, na.strings=c(""))
+liege_art <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_ART_3.csv', header = T, na.strings=c(""))
+liege_VL <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_RNA_3.csv', header = T, na.strings=c(""))
+liege_egfr <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_EGFR_3.csv', header = T, na.strings=c(""))
+liege_liver <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/ULG_LAB_VIRO_3.csv', header = T, na.strings=c(""))
+liege_hcv <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Université de Liège -Sart Tilman/csv/HCV_only.csv', header = T, na.strings=c(""))
 
-pierre_px <- read.csv2('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/St Pierre/PATIENTS.csv',
+pierre_px <- read.csv2('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/St Pierre/PATIENTS.csv',
                        header = TRUE, quote = "\"", dec = ",", na.strings=c(""))
 
-pierre_events <- read.csv2('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/St Pierre/EVENTS.csv',
+pierre_events <- read.csv2('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/St Pierre/EVENTS.csv',
                            header = TRUE, quote = "\"", dec = ",", na.strings=c(""))
 
-erasme_base <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_base.csv', header = T, na.strings=c(""))
-erasme_ART <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_ART.csv', header = T, na.strings=c(""))
+erasme_base <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Erasme/Erasme_base.csv', header = T, na.strings=c(""))
+erasme_ART <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Erasme/Erasme_ART.csv', header = T, na.strings=c(""))
 
-erasme_cd4 <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_CD4.csv', header = T, na.strings=c(""))
+erasme_cd4 <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Erasme/Erasme_CD4.csv', header = T, na.strings=c(""))
 
 #aggregate the different CM dataframes
-erasme_cancer <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_cancer.csv', header = T, na.strings=c(""))
-erasme_cvd <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_cvd.csv', header = T, na.strings=c(""))
-erasme_diabetes <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_diabetes.csv', header = T, na.strings=c(""))
-erasme_hta <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_hta.csv', header = T, na.strings=c(""))
-erasme_liver <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_liver.csv', header = T, na.strings=c(""))
-erasme_renal <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_renal.csv', header = T, na.strings=c(""))
-erasme_bmi <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_bmi.csv', header = T, na.strings=c(""), sep=',')
-erasme_new <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_new_data.csv', header = T, na.strings=c(""), sep=',')
-erasme_nadir <- read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Erasme/Erasme_nadircd4.csv', header = T, na.strings=c(""), sep=',')
+erasme_cancer <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Erasme/Erasme_cancer.csv', header = T, na.strings=c(""))
+erasme_cvd <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Erasme/Erasme_cvd.csv', header = T, na.strings=c(""))
+erasme_diabetes <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Erasme/Erasme_diabetes.csv', header = T, na.strings=c(""))
+erasme_hta <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Erasme/Erasme_hta.csv', header = T, na.strings=c(""))
+erasme_liver <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Erasme/Erasme_liver.csv', header = T, na.strings=c(""))
+erasme_renal <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Erasme/Erasme_renal.csv', header = T, na.strings=c(""))
+erasme_bmi <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Erasme/Erasme_bmi.csv', header = T, na.strings=c(""), sep=',')
+erasme_new <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Erasme/Erasme_new_data.csv', header = T, na.strings=c(""), sep=',')
+erasme_nadir <- read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Erasme/Erasme_nadircd4.csv', header = T, na.strings=c(""), sep=',')
 
-ghent_px1 <-read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Ghent/Ghent_new_data.csv', header = T, na.strings=c("UNK"))
-ghent_px2 <-read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Ghent/Ghent_new_data3.csv', header = T, na.strings=c("UNK"))
-ghent_ICP <-read.csv('/Users/cda/Dropbox (CfDA)/Titan - CDA Only/Ad hoc Projects/HIV/Data/Belgium/Ghent/Ghent_ICP.csv', header = T, na.strings=c("UNK"))
+ghent_px1 <-read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Ghent/Ghent_new_data.csv', header = T, na.strings=c("UNK"))
+ghent_px2 <-read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Ghent/Ghent_new_data3.csv', header = T, na.strings=c("UNK"))
+ghent_ICP <-read.csv('/Users/cda/Dropbox (CfDA)/Archived Projects/Titan Other/HIV/Data/Belgium/Ghent/Ghent_ICP.csv', header = T, na.strings=c("UNK"))
 
 
 ##### Standard ID names --------
@@ -146,16 +147,10 @@ ethnic_freq <- function(df) {
 }
 
 #change NA to 0 and create a variable for polypathology
-# varto0 <- function(df) {
-#   df[c("dia", "cvd", "ac", "hl", "liver", "lung", "hcv", "ckd", "hyp")][is.na(df[c("dia", "cvd", "ac", "hl", "liver", "lung", "hcv", "ckd", "hyp")])] <- 0
-#   df$poly <- df$dia + df$cvd + df$hcv + df$ckd
-#   df
-#   }
 
-#try one round without hcv and dia
 varto0 <- function(df) {
-  df[c("dia", "cvd", "ac", "hl", "liver", "lung", "ckd", "hcv", "hyp")][is.na(df[c("dia", "cvd", "ac", "hl", "liver", "lung", "ckd", "hcv", "hyp")])] <- 0
-  df$poly <- df$cvd + df$ckd + df$dia + df$ac + df$hl + df$liver + df$lung
+  df[c("dia", "cvd", "ac", "hl", "liver", "lung", "ckd", "hyp", "hcv")][is.na(df[c("dia", "cvd", "ac", "hl", "liver", "lung", "ckd", "hyp", "hcv")])] <- 0
+  df$poly <- df$cvd + df$ckd + df$dia + df$ac + df$hl + df$liver + df$lung + df$hyp
   df
 }
 
@@ -400,6 +395,9 @@ ethnic_freq(liege_not_LTFU)
 ##### Liege smoking -------
 
 table(liege_not_LTFU$SMOKING)
+#recode the smoking values
+liege_not_LTFU$SMOKING[liege_not_LTFU$SMOKING == 2] <- 1
+liege_not_LTFU$SMOKING[liege_not_LTFU$SMOKING == 99] <- NA
 
 ##### Liege hyp -------
 
@@ -773,6 +771,9 @@ erasme_renal$ckd <- 1
 #drop the date col 
 erasme_renal <- subset(erasme_renal, select= -c(ae_date))
 
+#remove duplicated rows
+erasme_renal <- erasme_renal[!duplicated(erasme_renal),]
+
 erasme_master <- comb(erasme_master, erasme_renal)
 
 ####### Erasme diabetes ------
@@ -804,15 +805,16 @@ erasme_master <- comb(erasme_master, erasme_hta)
   
 ###### Erasme liver ------
 
-#make new columns for HCV and HBV status
+#eliminate erasme liver ae_date and notes cols
+erasme_liver <- subset(erasme_liver, select = -c(ae_date, Notes))
+erasme_liver2 <- subset(erasme_liver, Medical.history.report == "Hepatite C chronique")
 
-erasme_liver$hbv <- ifelse(erasme_liver$Medical.history.report == "Hepatite B chronique", 1, 0)
-erasme_liver$hcv <- ifelse(erasme_liver$Medical.history.report == "Hepatite C chronique", 1, 0)
-
-erasme_liver <- subset(erasme_liver, select = -c(ae_date, Medical.history.report, Notes))
+erasme_liver2 <- erasme_liver2[!duplicated(erasme_liver2),]
+erasme_liver2$hcv <- 1
+erasme_liver2 <- subset(erasme_liver2, select = -c(Medical.history.report))
 
 #merge with erasme_master
-erasme_master <- comb(erasme_master, erasme_liver)
+erasme_master <- comb(erasme_master, erasme_liver2)
 
 ########################### erasme years on ART -----------------
 
@@ -1033,37 +1035,73 @@ hyp_dead_sum <- stack(list(liege= liege_dead$hyp, pierre= pierre_dead$hyp,
 poly_dead_sum <- stack(list(liege= liege_dead$poly, pierre= pierre_dead$poly, 
                       erasme = erasme_dead$poly, ghent = ghent_dead$poly))
 
+#use poly_sum to find out how many people have any NICM
+#chi square test
+
+polyto0 <- function(df) {
+  df$nicm_yes <- ifelse(df$poly >= 1, 1, 0)
+  df
+}
+
+liege_not_LTFU <- polyto0(liege_not_LTFU)
+pierre_not_LTFU <- polyto0(pierre_not_LTFU)
+erasme_not_LTFU <- polyto0(erasme_not_LTFU)
+ghent_not_LTFU <- polyto0(ghent_not_LTFU)
+
+#subset each not_LTFU by nadir
+#rename the nadir col 
+names(erasme_not_LTFU)[14] <- "cd4_nadir"
+names(liege_not_LTFU)[24] <- "cd4_nadir"
+
+liege_nadir <- subset(liege_not_LTFU, select = c(cd4_nadir, nicm_yes))
+pierre_nadir <- subset(pierre_not_LTFU, select = c(cd4_nadir, nicm_yes))
+erasme_nadir <- subset(erasme_not_LTFU, select = c(cd4_nadir, nicm_yes))
+
+
+#write out files
+write.xlsx(liege_nadir, "/Users/cda/Desktop/liege_nadir.xlsx")
+write.xlsx(pierre_nadir, "/Users/cda/Desktop/pierre_nadir.xlsx")
+write.xlsx(erasme_nadir, "/Users/cda/Desktop/erasme_nadir.xlsx")
+all_sites_nadir <- read.csv('/Users/cda/Desktop/all_sites_nadir.csv', header = T, na.strings=c(""))
+
+tbl = table(all_sites_nadir$nadir_categ, all_sites_nadir$nicm_yes)
+
+nadir_200 <- subset(cd4_nadir_melt, value < 200)
+nadir_350 <- subset(cd4_nadir_melt, value < 350 & value >= 200)
+nadir_500 <- subset(cd4_nadir_melt, value < 500 & value >= 350)
+nadir_over500 <- subset(cd4_nadir_melt, value >= 500)
+
+
 #a, c, b, d
 table(poly_sum$values)
 table(poly_dead_sum$values)
 
-#cvd, renal, dia
-poly_conting = matrix(c(2, 29, 102, 5692), nrow=2)
+poly_conting = matrix(c(6, 25, 516, 5271), nrow=2)
 fisher.test(poly_conting)
 
-#cvd and renal
-poly_conting = matrix(c(1, 30, 35, 5759), nrow=2)
-fisher.test(poly_conting)
-
-#cvd, renal, dia, hcv
-poly_conting = matrix(c(5, 26, 126, 5668), nrow=2)
-fisher.test(poly_conting)
-
-cvd_conting = matrix(c(2,23,143,4744), nrow = 2)
-fisher.test(cvd_conting)
-
-ckd_conting = matrix(c(7,24,451,5343), nrow = 2)
-fisher.test(ckd_conting)
-
-dia_conting = matrix(c(4,27,344,5450), nrow = 2)
-fisher.test(dia_conting)
-
-hcv_conting = matrix(c(5,26,165,5629), nrow = 2)
-fisher.test(hcv_conting)
-
-hyp_conting = matrix(c(5,26,1795,3999), nrow = 2)
+hyp_conting = matrix(c(5, 26, 1792, 3995), nrow=2)
 fisher.test(hyp_conting)
 
+cvd_conting = matrix(c(2,23,142,4738), nrow = 2)
+fisher.test(cvd_conting)
+
+ckd_conting = matrix(c(7,24,447,5340), nrow = 2)
+fisher.test(ckd_conting)
+
+dia_conting = matrix(c(4,27,344,5443), nrow = 2)
+fisher.test(dia_conting)
+
+hcv_conting = matrix(c(5,26,164,5623), nrow = 2)
+fisher.test(hcv_conting)
+
+lung_conting = matrix(c(2,29,5,5782), nrow = 2)
+fisher.test(lung_conting)
+
+liver_conting = matrix(c(1,30,3,5784), nrow = 2)
+fisher.test(liver_conting)
+
+hl_conting = matrix(c(1,30,28,5759), nrow = 2)
+fisher.test(hl_conting)
 
 #####
 
@@ -1124,136 +1162,46 @@ colnames(mortal_tabs)[c(1:6)] <- c("Age", "Liege", "St. Pierre", "Erasme", "Ghen
 mortal_tabs_long <- melt(mortal_tabs, id="Age")  # convert to long format
 names(mortal_tabs_long)[2] <- "Cohort"
 
-standardized_mortality <- ggplot(data=mortal_tabs_long,
-                                 aes(x=Age, y=value, group = Cohort, colour=Cohort)) +
-  geom_line(size=1.5) + ylab("Mortality rate per 1000") + ggtitle("Age-adjusted standardized mortality rates by cohort")
 
 
-new_crude_df_fixed$Age <- factor(new_crude_df_fixed$Age, levels = new_crude_df_fixed$Age)
+######################################################### summaries ----
 
-#poster graph, updated with new Ghent death data
-new_graph_over_66 <- ggplot(data=new_crude_df_fixed, aes(x=Age, y=crude_mortality, group = 1)) +
-  geom_line(size=1.5) + ylab("Mortality rate per 1000") + 
-  xlab("Age groups") +
-  ggtitle("Age-adjusted crude mortality rates") + 
-  theme(legend.position = "bottom", plot.title = element_text(size = 30, face="bold"))
-
-######## Look closer at 51-55
-
-deaths_51 <- function(df) {
-  new_df <- subset(df, age_binned == "51-55")
-  new_df
-}
-
-erasme_51 <- deaths_51(erasme_dead)
-liege_51 <- deaths_51(liege_dead)
-pierre_51 <- deaths_51(pierre_dead)
-ghent_51 <- deaths_51(ghent_dead)
-
-#merge just hcv_yes from pierre_events_recent with dead
-dead_hep_tmp <- pierre_events_recent[c(1, 115)]
-#make the patient IDs integers
-dead_hep_tmp$PATIENT_ID <- as.integer(dead_hep_tmp$PATIENT_ID)
-dead_hep <- merge(dead_hep_tmp, pierre_dead, by="PATIENT_ID", all=FALSE)
-
-#pierre dead under 60
-pierre_60 <- subset(pierre_dead, age < 61)
-
-
-###################### LTFU graphs -------------------------------
-
-#LTFU graphs
-
-#histograms
-
-pierre_LTFU_histo <- ggplot(pierre_not_LTFU, binwidth = 5, aes(x=age, stat="count")) + 
-  geom_histogram(data=subset(pierre_not_LTFU,LTFU == 0),fill = "red", 
-                 alpha = 0.4, binwidth = 5) +
-  geom_histogram(data=subset(pierre_LTFU,LTFU == 1),fill = "blue", 
-                 alpha = 0.4, binwidth = 5) + 
-  scale_x_continuous(breaks=seq(0,90,5)) + 
-  ggtitle("St. Pierre") +
-  theme(plot.title = element_text(size = 20), axis.title.y=element_blank(),
-        axis.title.x=element_blank()) +
-  coord_cartesian(xlim=c(0,90))
-
-liege_LTFU_histo <- ggplot(liege_not_LTFU, binwidth = 5, aes(x=age, stat="count")) + 
-  geom_histogram(data=subset(liege_not_LTFU,STATUS == "Follow up"),fill = "red", 
-                 alpha = 0.4, binwidth = 5) +
-  geom_histogram(data=subset(liege_LTFU,STATUS == "Contact lost"),fill = "blue", 
-                 alpha = 0.4, binwidth = 5) + 
-  scale_x_continuous(breaks=seq(0,90,5)) + 
-  ggtitle("Liege") +
-  theme(plot.title = element_text(size = 20), axis.title.y=element_blank(),
-        axis.title.x=element_blank()) +
-  coord_cartesian(xlim=c(0,90))
-
-erasme_LTFU_histo <- ggplot(erasme_not_LTFU, binwidth = 5, aes(x=age, stat="count")) + 
-  geom_histogram(data=subset(erasme_not_LTFU,status == "Follow up"),fill = "red", 
-                 alpha = 0.4, binwidth = 5) +
-  geom_histogram(data=subset(erasme_master,status == "LTFU"),fill = "blue", 
-                 alpha = 0.4, binwidth = 5) + 
-  scale_x_continuous(breaks=seq(0,90,5)) + 
-  ggtitle("Erasme") +
-  theme(plot.title = element_text(size = 20), axis.title.y=element_blank(),
-        axis.title.x=element_blank()) +
-  coord_cartesian(xlim=c(0,90))
-
-ghent_LTFU_histo <- ggplot(ghent_not_LTFU, binwidth = 5, aes(x=age, stat="count")) + 
-  geom_histogram(data=subset(ghent_not_LTFU,status == "Follow up"),fill = "red", 
-                 alpha = 0.4, binwidth = 5) +
-  geom_histogram(data=subset(ghent_px_master,status == "LTFU"),fill = "blue", 
-                 alpha = 0.4, binwidth = 5) + 
-  scale_x_continuous(breaks=seq(0,90,5)) + 
-  ggtitle("Ghent") +
-  theme(plot.title = element_text(size = 20), axis.title.y=element_blank(),
-        axis.title.x=element_blank()) +
-  coord_cartesian(xlim=c(0,90))
-
-grid.arrange(pierre_LTFU_histo, liege_LTFU_histo, erasme_LTFU_histo, ghent_LTFU_histo)
-
-####################### BMI Graphs ----------------------
-
-#create boxplots - BMI by gender
-
-#Liege
-#with diamond at the mean
-liege_bmi <- ggplot(liege_not_LTFU, aes(GENDER, BMI, fill=GENDER)) + geom_boxplot() +
-  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
-  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
-  scale_y_continuous(breaks=seq(0,50,5)) + 
-  guides(fill=FALSE) + 
-  ggtitle("BMI Distribution - Liège") + 
-  xlab("Gender") +
-  ylab("BMI")
-
-#####pierre
-#gender and bmi are in different databases
-
-pierre_gen_bmi <- data.frame(comb_F(pierre_bmi_avg, pierre_not_LTFU))
-
-pierre_bmi <- ggplot(pierre_gen_bmi, aes(GENDER, avg, fill=GENDER)) + geom_boxplot() +
-  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
-  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
-  scale_y_continuous(breaks=seq(0,50,5)) + 
-  ggtitle("BMI Distribution - St. Pierre") + 
-  xlab("Gender") +
-  ylab("BMI") +
-  guides(fill=FALSE)
-
-
-grid.arrange(liege_bmi, pierre_bmi, ncol=2)
-
-######################################################### age distros ----
-
+nrow(erasme_not_LTFU) + nrow(pierre_not_LTFU) + nrow(liege_not_LTFU) + nrow(ghent_not_LTFU)
 #combine all the ages for summary statistics
 ages_summary <- stack(list(liege = liege_not_LTFU$age, pierre = pierre_not_LTFU$age, 
                               erasme = erasme_not_LTFU$age, ghent = ghent_not_LTFU$age))
+ages_melt <- melt(ages_summary)
 
 ages_binned_summary <- stack(list(liege = liege_not_LTFU$age_binned, pierre = pierre_not_LTFU$age_binned, 
                            erasme = erasme_not_LTFU$age_binned, ghent = ghent_not_LTFU$age_binned))
 
-summary(ages_summary[1])
+SD(ages_summary[1])
+
+#combine into one vector to get average recent CD4
+cd4_all <- list(ghent_not_LTFU$MOST_RECENT_CD4, erasme_not_LTFU$last.cd4_value, 
+                liege_not_LTFU$CD4_RECENT, pierre_not_LTFU$recent_cd4)
+cd4_melt <- melt(cd4_all)
+mean(cd4_melt$value, na.rm=TRUE)
+
+#no nadir measurement for ghent
+cd4_nadir_all <- list(erasme_not_LTFU$cd4_nadir_v, 
+                      liege_not_LTFU$CD4_NADIR, pierre_not_LTFU$cd4_nadir)
+cd4_nadir_melt <- melt(cd4_nadir_all)
+
+describe(cd4_nadir_melt$value, na.rm=TRUE)
+
+#stratify the cd4 nadir into below 35, below 200, below 500, above 500
+nadir_200 <- subset(cd4_nadir_melt, value < 200)
+nadir_350 <- subset(cd4_nadir_melt, value < 350 & value >= 200)
+nadir_500 <- subset(cd4_nadir_melt, value < 500 & value >= 350)
+nadir_over500 <- subset(cd4_nadir_melt, value >= 500)
+
+recent_200 <- subset(cd4_melt, value < 200)
+recent_350 <- subset(cd4_melt, value < 350 & value >= 200)
+recent_500 <- subset(cd4_melt, value < 500 & value >= 350)
+recent_over500 <- subset(cd4_melt, value >= 500)
+
+#do t.test to get 95% CI
 
 #freq tables for histograms
 
@@ -1295,120 +1243,11 @@ ghent_age_freq_perc <- freq_perc(ghent_age_freq)
 all_age_freq <- data.frame(table(all_age$age_binned))
 all_age_freq_perc <- freq_perc(all_age_freq)
 
-#histograms
-liege_bar_age <- ggplot(data = liege_age_freq_perc, aes(Var1, freq_percent) ) +
-  geom_bar(stat="identity", fill = "seagreen4") + 
-  ggtitle("Liège") + theme(axis.text.x = element_blank(), 
-                           axis.title.x=element_blank(),
-                           axis.title.y=element_blank(),
-                           axis.ticks.x=element_blank())
-
-pierre_bar_age <- ggplot(data = pierre_age_freq_perc, aes(Var1, freq_percent) ) +
-  geom_bar(stat="identity", fill = "seagreen4") + 
-  ggtitle("St. Pierre") + theme(axis.text.x = element_blank(), 
-                                axis.title.x=element_blank(),
-                                axis.title.y=element_blank(),
-                                axis.ticks.x=element_blank())
-
-erasme_bar_age <- ggplot(data = erasme_age_freq_perc, aes(Var1, freq_percent) ) +
-  geom_bar(stat="identity", fill = "seagreen4") +
-  ggtitle("Erasme") + theme(axis.text.x = element_blank(), 
-                            axis.title.x=element_blank(),
-                            axis.title.y=element_blank(),
-                            axis.ticks.x=element_blank())
-
-ghent_bar_age <- ggplot(data = ghent_age_freq_perc, aes(Var1, freq_percent) ) +
-  geom_bar(stat="identity", fill = "seagreen4") + 
-  ggtitle("Ghent") + theme(axis.text.x = element_blank(), 
-                           axis.title.x=element_blank(),
-                           axis.title.y=element_blank(),
-                           axis.ticks.x=element_blank())
-
-all_bar_age <- ggplot(data = all_age_freq_perc, aes(Var1, freq_percent) ) +
-  geom_bar(stat="identity", fill = "dodgerblue4") + xlab("Age groups") + ylab("Frequency (as % of total)") +
-  ggtitle("Age distribution - All") + theme(plot.title = element_text(size = 20))
-
-#theme(axis.text.x = element_text(angle = 60, hjust = 1))
-
-
-grid.arrange(all_bar_age, arrangeGrob(liege_bar_age, pierre_bar_age, 
-                                      erasme_bar_age, ghent_bar_age, ncol=4), heights=c(2.5/4, 1.5/4), ncol=1)
-
-
-############ age boxplots --------------------
-
-### remove NA from the distributions of liege and erasme 
-liege_age_df$gender <- as.character(liege_age_df$gender)
-erasme_age_df$gender <- as.character(erasme_age_df$gender)
-
-liege_age_df <- liege_age_df[complete.cases(liege_age_df[4]),]
-erasme_age_df <- erasme_age_df[complete.cases(erasme_age_df[4]),]
-
-#boxplots, separate
-#with diamond at the mean
-liege_box_age <- ggplot(liege_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
-  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
-  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
-  scale_y_continuous(breaks=seq(0,95,10), limits = c(10,95)) + 
-  theme(legend.position="none", axis.title.x=element_blank(),
-        axis.title.y=element_blank(), plot.title = element_text(size=20)) + 
-  ggtitle("Liège")
-
-pierre_box_age <- ggplot(pierre_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
-  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
-  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
-  scale_y_continuous(breaks=seq(0,95,10), limits = c(10,95)) +
-  theme(legend.position="none", axis.title.x=element_blank(),
-        axis.title.y=element_blank(), plot.title = element_text(size=20)) + 
-  ggtitle("St. Pierre")
-
-erasme_box_age <- ggplot(erasme_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
-  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
-  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
-  scale_y_continuous(breaks=seq(0,95,10), limits = c(10,95)) + 
-  theme(legend.position="none", axis.title.x=element_blank(),
-        axis.title.y=element_blank(), plot.title = element_text(size=20)) + 
-  ggtitle("Erasme")
-
-ghent_box_age <- ggplot(ghent_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
-  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
-  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
-  scale_y_continuous(breaks=seq(0,95,10), limits = c(10,95)) + 
-  theme(legend.position="none", axis.title.x=element_blank(),
-        axis.title.y=element_blank(), plot.title = element_text(size=20)) +
-  ggtitle("Ghent")
-
-all_box_age <- ggplot(all_age, aes(gender, age, fill=gender)) + geom_boxplot() +
-  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
-  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
-  scale_y_continuous(breaks=seq(0,95,5), limits = c(10,95)) + 
-  theme(legend.position="none", axis.title.x=element_blank(),
-        axis.title.y=element_blank(), 
-        plot.title = element_text(size = 30, face = "bold")) + 
-  ggtitle("Age & Gender Distribution - All centers")
-
-#to make a common legend for all
-# go here: http://stackoverflow.com/questions/13649473/add-a-common-legend-for-combined-ggplots
-
-grid.arrange(all_box_age, arrangeGrob(liege_box_age , pierre_box_age, erasme_box_age, 
-                                      ghent_box_age, ncol=4), heights=c(2.5/4, 1.5/4), ncol=1)
 
 ###################### Cohort summaries --------------------
 
 #Use the living patients not LTFU 
 
-#combine into one vector to get average recent CD4
-cd4_all <- list(ghent_not_LTFU$MOST_RECENT_CD4, erasme_not_LTFU$last.cd4_value, 
-                   liege_not_LTFU$CD4_RECENT, pierre_not_LTFU$recent_cd4)
-cd4_melt <- melt(cd4_all)
-mean(cd4_melt$value, na.rm=TRUE)
-
-#no nadir measurement for ghent
-cd4_nadir_all <- list(erasme_not_LTFU$cd4_nadir_v, 
-                liege_not_LTFU$CD4_NADIR, pierre_not_LTFU$cd4_nadir)
-cd4_nadir_melt <- melt(cd4_nadir_all)
-
-mean(cd4_nadir_melt$value, na.rm=TRUE)
 
 #gender
 gender_all <- list(ghent_not_LTFU$GENDER, erasme_not_LTFU$GENDER, 
@@ -1461,10 +1300,6 @@ names(region_tab)[1] <- "Region"
 #relevel the factor orders by proportion
 region_tab$Region <- factor(region_tab$Region, levels=region_tab[order(-region_tab$Proportion), "Region"])
 
-region_bar <- ggplot(region_tab, aes(x=Region, y=Proportion)) +
-  geom_bar(stat="identity", fill="seagreen3") +
-  geom_text(aes(label=Proportion), position=position_dodge(width=0.9), vjust=-0.25) +
-  ggtitle("Region of origin") + theme(plot.title = element_text(size=30, face="bold"), axis.title.x = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1, size = 12))
 
 #########
 #Prevalence of NICMs by age 
@@ -1755,6 +1590,39 @@ lung_4150 <- (NICM_age(liege_lung2, pierre_lung2, erasme_lung2, ghent_lung2, pop
 lung_5160 <- (NICM_age(liege_lung3, pierre_lung3, erasme_lung3, ghent_lung3, pop_5160))*100
 lung_60 <- (NICM_age(liege_lung4, pierre_lung4, erasme_lung4, ghent_lung4, pop_60))*100
 
+#hyp
+
+liege_hyp <- subset(liege_not_LTFU, hyp == 1)
+pierre_hyp <- subset(pierre_not_LTFU, hyp == 1)
+erasme_hyp <- subset(erasme_not_LTFU, hyp == 1)
+ghent_hyp <- subset(ghent_not_LTFU, hyp == 1)
+
+liege_hyp4 <- df_nicm4(liege_hyp)
+liege_hyp3 <- df_nicm3(liege_hyp)
+liege_hyp2 <- df_nicm2(liege_hyp)
+liege_hyp1 <- df_nicm1(liege_hyp)
+
+pierre_hyp4 <- df_nicm4(pierre_hyp)
+pierre_hyp3 <- df_nicm3(pierre_hyp)
+pierre_hyp2 <- df_nicm2(pierre_hyp)
+pierre_hyp1 <- df_nicm1(pierre_hyp)
+
+erasme_hyp4 <- df_nicm4(erasme_hyp)
+erasme_hyp3 <- df_nicm3(erasme_hyp)
+erasme_hyp2 <- df_nicm2(erasme_hyp)
+erasme_hyp1 <- df_nicm1(erasme_hyp)
+
+ghent_hyp4 <- df_nicm4(ghent_hyp)
+ghent_hyp3 <- df_nicm3(ghent_hyp)
+ghent_hyp2 <- df_nicm2(ghent_hyp)
+ghent_hyp1 <- df_nicm1(ghent_hyp)
+
+hyp_40 <- (NICM_age(liege_hyp1, pierre_hyp1, erasme_hyp1, ghent_hyp1, pop_40))*100
+hyp_4150 <- (NICM_age(liege_hyp2, pierre_hyp2, erasme_hyp2, ghent_hyp2, pop_4150))*100
+hyp_5160 <- (NICM_age(liege_hyp3, pierre_hyp3, erasme_hyp3, ghent_hyp3, pop_5160))*100
+hyp_60 <- (NICM_age(liege_hyp4, pierre_hyp4, erasme_hyp4, ghent_hyp4, pop_60))*100
+
+
 #polypathology
 
 liege_poly <- subset(liege_not_LTFU, poly > 1)
@@ -1790,12 +1658,203 @@ poly_60 <- (NICM_age(liege_poly4, pierre_poly4, erasme_poly4, ghent_poly4, pop_6
 table(poly_sum$values)
 
 #### population over 50
-ghent_50 <- subset(ghent_not_LTFU, AGE >= 50)
+ghent_50 <- subset(ghent_not_LTFU, age >= 50)
 pierre_50 <- subset(pierre_not_LTFU, age >= 50)
-erasme_50 <- subset(erasme_not_LTFU, AGE >= 50)
+erasme_50 <- subset(erasme_not_LTFU, age >= 50)
 liege_50 <- subset(liege_not_LTFU, age >= 50)
 
 pop_50 <-  (nrow(liege_50) + nrow(pierre_50) + nrow(erasme_50) + nrow(ghent_50))
 
+##subset according to nadir cd4
+#do mortality risk tests for categories under 35, 35-199, 200-499, 500+
 
+nadir_func <- function(df) {
+  df_low <- subset(df, cd4_nadir < 35)
+  df_med <- subset(df, cd4_nadir >= 35 & cd4_nadir < 200)
+  df_medhigh <- subset(df, cd4_nadir >= 200 & cd4_nadir < 500)
+  df_high <- subset(df, cd4_nadir >= 500)
+  return(list(df_low, df_med, df_medhigh, df_high))
+}
+
+pierre_nadir_groups <- nadir_func(pierre_FU_all)
+
+
+
+df_med <- function(df) {
+  df_nicm3 <- subset(df, age <= 60 & age > 50)
+  df_nicm3
+}
+
+df_medhigh <- function(df) {
+  df_nicm2 <- subset(df, age <=50 & age > 40)
+  df_nicm2
+}
+
+df_medhigh <- function(df) {
+  df_nicm2 <- subset(df, age <=50 & age > 40)
+  df_nicm2
+}
+
+pierre_low_cd4 <- subset(pierre_FU_all, cd4_nadir < 35)
+pierre_mid_cd4 <- subset(pierre_FU_all, cd4_nadir >= 35 & cd4_nadir < 200)
+pierre_midhigh_cd4 <- subset(pierre_FU_all, cd4_nadir >= 200 & cd4_nadir < 500)
+pierre_high_cd4 <- subset(pierre_FU_all, cd4_nadir >= 500)
+
+#subset further to deaths among the cd4_nadir stratified groups?
+
+
+
+
+
+
+
+
+######## Look closer at 51-55 ---
+
+deaths_51 <- function(df) {
+  new_df <- subset(df, age_binned == "51-55")
+  new_df
+}
+
+erasme_51 <- deaths_51(erasme_dead)
+liege_51 <- deaths_51(liege_dead)
+pierre_51 <- deaths_51(pierre_dead)
+ghent_51 <- deaths_51(ghent_dead)
+
+#merge just hcv_yes from pierre_events_recent with dead
+dead_hep_tmp <- pierre_events_recent[c(1, 115)]
+#make the patient IDs integers
+dead_hep_tmp$PATIENT_ID <- as.integer(dead_hep_tmp$PATIENT_ID)
+dead_hep <- merge(dead_hep_tmp, pierre_dead, by="PATIENT_ID", all=FALSE)
+
+#pierre dead under 60
+pierre_60 <- subset(pierre_dead, age < 61)
+
+
+
+
+############ age boxplots --------------------
+
+### remove NA from the distributions of liege and erasme 
+liege_age_df$gender <- as.character(liege_age_df$gender)
+erasme_age_df$gender <- as.character(erasme_age_df$gender)
+
+liege_age_df <- liege_age_df[complete.cases(liege_age_df[4]),]
+erasme_age_df <- erasme_age_df[complete.cases(erasme_age_df[4]),]
+
+#boxplots, separate
+#with diamond at the mean
+liege_box_age <- ggplot(liege_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
+  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
+  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
+  scale_y_continuous(breaks=seq(0,95,10), limits = c(10,95)) + 
+  theme(legend.position="none", axis.title.x=element_blank(),
+        axis.title.y=element_blank(), plot.title = element_text(size=20)) + 
+  ggtitle("Liège")
+
+pierre_box_age <- ggplot(pierre_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
+  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
+  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
+  scale_y_continuous(breaks=seq(0,95,10), limits = c(10,95)) +
+  theme(legend.position="none", axis.title.x=element_blank(),
+        axis.title.y=element_blank(), plot.title = element_text(size=20)) + 
+  ggtitle("St. Pierre")
+
+erasme_box_age <- ggplot(erasme_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
+  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
+  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
+  scale_y_continuous(breaks=seq(0,95,10), limits = c(10,95)) + 
+  theme(legend.position="none", axis.title.x=element_blank(),
+        axis.title.y=element_blank(), plot.title = element_text(size=20)) + 
+  ggtitle("Erasme")
+
+ghent_box_age <- ggplot(ghent_age_df, aes(gender, age, fill=gender)) + geom_boxplot() +
+  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
+  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
+  scale_y_continuous(breaks=seq(0,95,10), limits = c(10,95)) + 
+  theme(legend.position="none", axis.title.x=element_blank(),
+        axis.title.y=element_blank(), plot.title = element_text(size=20)) +
+  ggtitle("Ghent")
+
+all_box_age <- ggplot(all_age, aes(gender, age, fill=gender)) + geom_boxplot() +
+  stat_summary(fun.y=mean, geom="point", shape=5, size=6) + 
+  scale_fill_manual(values = c("seagreen3", "dodgerblue3")) + 
+  scale_y_continuous(breaks=seq(0,95,5), limits = c(10,95)) + 
+  theme(legend.position="none", axis.title.x=element_blank(),
+        axis.title.y=element_blank(), 
+        plot.title = element_text(size = 30, face = "bold")) + 
+  ggtitle("Age & Gender Distribution - All centers")
+
+#to make a common legend for all
+# go here: http://stackoverflow.com/questions/13649473/add-a-common-legend-for-combined-ggplots
+
+grid.arrange(all_box_age, arrangeGrob(liege_box_age , pierre_box_age, erasme_box_age, 
+                                      ghent_box_age, ncol=4), heights=c(2.5/4, 1.5/4), ncol=1)
+
+
+######### age distro histograms ----------
+
+
+liege_bar_age <- ggplot(data = liege_age_freq_perc, aes(Var1, freq_percent) ) +
+  geom_bar(stat="identity", fill = "seagreen4") + 
+  ggtitle("Liège") + theme(axis.text.x = element_blank(), 
+                           axis.title.x=element_blank(),
+                           axis.title.y=element_blank(),
+                           axis.ticks.x=element_blank())
+
+pierre_bar_age <- ggplot(data = pierre_age_freq_perc, aes(Var1, freq_percent) ) +
+  geom_bar(stat="identity", fill = "seagreen4") + 
+  ggtitle("St. Pierre") + theme(axis.text.x = element_blank(), 
+                                axis.title.x=element_blank(),
+                                axis.title.y=element_blank(),
+                                axis.ticks.x=element_blank())
+
+erasme_bar_age <- ggplot(data = erasme_age_freq_perc, aes(Var1, freq_percent) ) +
+  geom_bar(stat="identity", fill = "seagreen4") +
+  ggtitle("Erasme") + theme(axis.text.x = element_blank(), 
+                            axis.title.x=element_blank(),
+                            axis.title.y=element_blank(),
+                            axis.ticks.x=element_blank())
+
+ghent_bar_age <- ggplot(data = ghent_age_freq_perc, aes(Var1, freq_percent) ) +
+  geom_bar(stat="identity", fill = "seagreen4") + 
+  ggtitle("Ghent") + theme(axis.text.x = element_blank(), 
+                           axis.title.x=element_blank(),
+                           axis.title.y=element_blank(),
+                           axis.ticks.x=element_blank())
+
+all_bar_age <- ggplot(data = all_age_freq_perc, aes(Var1, freq_percent) ) +
+  geom_bar(stat="identity", fill = "dodgerblue4") + xlab("Age groups") + ylab("Frequency (as % of total)") +
+  ggtitle("Age distribution - All") + theme(plot.title = element_text(size = 20))
+
+#theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+grid.arrange(all_bar_age, arrangeGrob(liege_bar_age, pierre_bar_age, 
+                                      erasme_bar_age, ghent_bar_age, ncol=4), heights=c(2.5/4, 1.5/4), ncol=1)
+
+
+######### mortality graphs ------
+
+standardized_mortality <- ggplot(data=mortal_tabs_long,
+                                 aes(x=Age, y=value, group = Cohort, colour=Cohort)) +
+  geom_line(size=1.5) + ylab("Mortality rate per 1000") + ggtitle("Age-adjusted standardized mortality rates by cohort")
+
+
+new_crude_df_fixed$Age <- factor(new_crude_df_fixed$Age, levels = new_crude_df_fixed$Age)
+
+#poster graph, updated with new Ghent death data
+new_graph_over_66 <- ggplot(data=new_crude_df_fixed, aes(x=Age, y=crude_mortality, group = 1)) +
+  geom_line(size=1.5) + ylab("Mortality rate per 1000") + 
+  xlab("Age groups") +
+  ggtitle("Age-adjusted crude mortality rates") + 
+  theme(legend.position = "bottom", plot.title = element_text(size = 30, face="bold"))
+
+
+
+##### region graph ------
+region_bar <- ggplot(region_tab, aes(x=Region, y=Proportion)) +
+  geom_bar(stat="identity", fill="seagreen3") +
+  geom_text(aes(label=Proportion), position=position_dodge(width=0.9), vjust=-0.25) +
+  ggtitle("Region of origin") + theme(plot.title = element_text(size=30, face="bold"), axis.title.x = element_blank(), axis.text.x = element_text(angle = 45, hjust = 1, size = 12))
 
